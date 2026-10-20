@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+psycopg2-binary
+bcrypt
+python-dotenv
+pydantic
+pydantic-settings
+pytest
+pytest-cov
+httpx
+itsdangerous
+python-multipart

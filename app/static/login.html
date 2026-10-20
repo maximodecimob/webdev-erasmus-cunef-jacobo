@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign In - Vibe Tickets</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Sign In</h1>
+    <form id="login-form" action="/login" method="POST">
+      <label>
+        Email address
+        <input type="email" name="email" required placeholder="customer@vibe.test">
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" required placeholder="••••••••">
+      </label>
+      <button type="submit" id="submit-btn">Sign In</button>
+    </form>
+    <div id="status-message"></div>
+  </div>
+  <script>
+    const form = document.getElementById('login-form');
+    const statusDiv = document.getElementById('status-message');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusDiv.className = 'state-loading';
+      statusDiv.textContent = 'Signing in...';
+      
+      const formData = new FormData(form);
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          body: formData,
+          headers: { 'Accept': 'application/json' },
+          redirect: 'follow'
+        });
+        if (res.ok) {
+          statusDiv.className = 'state-success';
+          statusDiv.textContent = 'Sign-in successful! Redirecting...';
+          window.location.href = '/events';
+        } else {
+          const data = await res.json().catch(() => ({ error: 'Invalid credentials' }));
+          statusDiv.className = 'state-error';
+          statusDiv.textContent = data.error || 'Sign-in failed.';
+        }
+      } catch (err) {
+        statusDiv.className = 'state-error';
+        statusDiv.textContent = 'An error occurred during sign-in.';
+      }
+    });
+  </script>
+</body>
+</html>

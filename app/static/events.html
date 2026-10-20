@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upcoming Events - Vibe Tickets</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <div class="container" style="max-width: 800px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h1>Upcoming Events in Madrid</h1>
+      <form action="/logout" method="POST" style="margin: 0;">
+        <button type="submit" style="background-color: #334155; padding: 0.5rem 1rem;">Sign Out</button>
+      </form>
+    </div>
+    
+    <div id="events-container">
+      <div class="state-loading" id="loading-state">Loading upcoming events...</div>
+    </div>
+  </div>
+
+  <script>
+    async function fetchEvents() {
+      const container = document.getElementById('events-container');
+      try {
+        const res = await fetch('/api/events');
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        if (!res.ok) {
+          throw new Error('Failed to load events');
+        }
+        const events = await res.json();
+        
+        if (events.length === 0) {
+          container.innerHTML = '<div class="state-empty">No upcoming events found.</div>';
+          return;
+        }
+
+        let html = '';
+        events.forEach(ev => {
+          const formattedDate = new Date(ev.date).toLocaleString();
+          html += `
+            <div class="event-card">
+              <h2>${ev.title}</h2>
+              <p><strong>Venue:</strong> ${ev.venue}</p>
+              <p><strong>Date:</strong> ${formattedDate}</p>
+              <p><strong>Price:</strong> €${ev.price.toFixed(2)}</p>
+              <p><strong>Tickets Left:</strong> ${ev.tickets_left} / ${ev.total_tickets}</p>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<div class="state-error">Error loading events: ${err.message}</div>`;
+      }
+    }
+
+    fetchEvents();
+  </script>
+</body>
+</html>

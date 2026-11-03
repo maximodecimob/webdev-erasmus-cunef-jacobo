@@ -145,6 +145,7 @@ a:hover { color: var(--color-accent-text-2); }
   gap: var(--space-5);
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
 }
+[hidden] { display: none !important; }
 .stack { display: grid; gap: var(--space-4); }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
 

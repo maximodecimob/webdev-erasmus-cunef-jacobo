@@ -2,62 +2,75 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Upcoming Events - Vibe Tickets</title>
   <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-  <div class="container" style="max-width: 800px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-      <h1>Upcoming Events in Madrid</h1>
-      <form action="/logout" method="POST" style="margin: 0;">
-        <button type="submit" style="background-color: #334155; padding: 0.5rem 1rem;">Sign Out</button>
-      </form>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="nav" id="nav"></header>
+  <main id="main" class="container page">
+    <div class="page-head">
+      <h1>Tonight in <span class="accent">Madrid</span></h1>
+      <p>Upcoming club events. Pick a night, get your ticket.</p>
     </div>
-    
-    <div id="events-container">
-      <div class="state-loading" id="loading-state">Loading upcoming events...</div>
-    </div>
-  </div>
-
+    <div id="events" aria-live="polite" aria-busy="true"></div>
+  </main>
+  <script src="/static/js/app.js"></script>
   <script>
-    async function fetchEvents() {
-      const container = document.getElementById('events-container');
-      try {
-        const res = await fetch('/api/events');
-        if (res.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
-        if (!res.ok) {
-          throw new Error('Failed to load events');
-        }
-        const events = await res.json();
-        
-        if (events.length === 0) {
-          container.innerHTML = '<div class="state-empty">No upcoming events found.</div>';
-          return;
-        }
+    const box = document.getElementById('events');
+    const mePromise = getMe();
+    mePromise.then(renderNav);
 
-        let html = '';
-        events.forEach(ev => {
-          const formattedDate = new Date(ev.date).toLocaleString();
-          html += `
-            <div class="event-card">
-              <h2>${ev.title}</h2>
-              <p><strong>Venue:</strong> ${ev.venue}</p>
-              <p><strong>Date:</strong> ${formattedDate}</p>
-              <p><strong>Price:</strong> €${ev.price.toFixed(2)}</p>
-              <p><strong>Tickets Left:</strong> ${ev.tickets_left} / ${ev.total_tickets}</p>
-            </div>
-          `;
-        });
-        container.innerHTML = html;
-      } catch (err) {
-        container.innerHTML = `<div class="state-error">Error loading events: ${err.message}</div>`;
-      }
+    function showSkeleton() {
+      box.setAttribute('aria-busy', 'true');
+      box.innerHTML = '<div class="grid" role="status" aria-label="Loading events">'
+        + '<div class="skeleton skeleton-card"></div>'.repeat(3) + '</div>';
     }
 
-    fetchEvents();
+    function action(ev, me) {
+      const url = '/events/' + ev.id;
+      if (!me) return '<a class="btn btn-primary btn-block" href="/login">Log in to buy</a>';
+      if (me.role === 'customer' && ev.tickets_left > 0) return '<a class="btn btn-primary btn-block" href="' + url + '">Get ticket</a>';
+      return '<a class="btn btn-ghost btn-block" href="' + url + '">View event</a>';
+    }
+
+    function card(ev, me) {
+      const url = '/events/' + ev.id;
+      let left;
+      if (ev.tickets_left === 0) left = '<span class="badge badge-danger">Sold out</span>';
+      else if (ev.tickets_left < 10) left = '<span class="left-hint">Few left: ' + ev.tickets_left + '</span>';
+      else left = '<span class="muted">' + ev.tickets_left + ' left</span>';
+      return '<article class="card card-lift" style="--hue:' + hueFor(ev.id) + '">'
+        + '<a class="poster" href="' + url + '" tabindex="-1" aria-hidden="true">' + dateBadge(ev.date) + '</a>'
+        + '<div class="card-body">'
+        + '<h2 class="card-title"><a href="' + url + '">' + escapeHtml(ev.title) + '</a></h2>'
+        + '<p class="muted">' + escapeHtml(ev.venue) + '</p>'
+        + '<p class="muted">' + escapeHtml(formatDate(ev.date)) + '</p>'
+        + '<div class="card-foot"><span class="price">' + escapeHtml(formatPrice(ev.price)) + '</span>' + left + '</div>'
+        + '</div><div class="card-actions">' + action(ev, me) + '</div></article>';
+    }
+
+    async function load() {
+      showSkeleton();
+      try {
+        const events = await api('/api/events');
+        const me = await mePromise;
+        if (events.length === 0) {
+          box.innerHTML = '<div class="state"><p class="state-title">No upcoming events yet</p>'
+            + '<p>New nights are added all the time. Check back soon.</p></div>';
+        } else {
+          box.innerHTML = '<div class="grid">' + events.map((ev) => card(ev, me)).join('') + '</div>';
+        }
+      } catch (err) {
+        box.innerHTML = '<div class="state state-error" role="alert"><p class="state-title">Could not load events</p>'
+          + '<p>' + escapeHtml(err.message) + '</p><button class="btn btn-ghost" id="retry" type="button">Retry</button></div>';
+        document.getElementById('retry').addEventListener('click', load);
+      }
+      box.setAttribute('aria-busy', 'false');
+    }
+
+    load();
   </script>
 </body>
 </html>

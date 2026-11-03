@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My tickets - Vibe Tickets</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="nav" id="nav"></header>
+  <main id="main" class="container page">
+    <div class="page-head">
+      <h1>My <span class="accent">tickets</span></h1>
+      <p>Show the code at the door.</p>
+    </div>
+    <div id="tickets" aria-live="polite" aria-busy="true"></div>
+  </main>
+  <script src="/static/js/app.js"></script>
+  <script>
+    const box = document.getElementById('tickets');
+    getMe().then((me) => { if (!me) location.href = '/login'; else renderNav(me); });
+
+    function emptyState() {
+      box.innerHTML = '<div class="state"><p class="state-title">You have no tickets yet</p>'
+        + '<p>Find a night out and your tickets will appear here.</p>'
+        + '<a class="btn btn-primary" href="/events">Browse events</a></div>';
+    }
+
+    function stub(t) {
+      return '<article class="stub" style="--hue:' + hueFor(t.event_id) + '" data-id="' + escapeHtml(t.id) + '">'
+        + '<div class="stub-main"><h2><a href="/events/' + encodeURIComponent(t.event_id) + '">' + escapeHtml(t.title) + '</a></h2>'
+        + '<p class="muted">' + escapeHtml(t.venue) + '</p><p class="muted">' + escapeHtml(formatDate(t.date)) + '</p>'
+        + '<div class="stub-actions"><button class="btn btn-ghost cancel-btn" type="button">Cancel ticket</button></div></div>'
+        + '<div class="stub-code"><span class="stub-label">Ticket code</span><span class="code">' + escapeHtml(t.code) + '</span></div></article>';
+    }
+
+    async function load() {
+      box.setAttribute('aria-busy', 'true');
+      box.innerHTML = '<div class="stack" role="status" aria-label="Loading tickets">'
+        + '<div class="skeleton skeleton-card" style="min-height:9rem"></div>'.repeat(2) + '</div>';
+      try {
+        const tickets = await api('/api/tickets');
+        if (tickets.length === 0) { emptyState(); }
+        else {
+          box.innerHTML = '<div class="stack" id="list">' + tickets.map(stub).join('') + '</div>';
+          box.querySelectorAll('.stub').forEach((el) => {
+            el.querySelector('.cancel-btn').addEventListener('click', () => cancel(el));
+          });
+        }
+      } catch (err) {
+        if (err.status === 401) { location.href = '/login'; return; }
+        box.innerHTML = '<div class="state state-error" role="alert"><p class="state-title">Could not load your tickets</p><p>'
+          + escapeHtml(err.message) + '</p><button class="btn btn-ghost" id="retry" type="button">Retry</button></div>';
+        document.getElementById('retry').addEventListener('click', load);
+      }
+      box.setAttribute('aria-busy', 'false');
+    }
+
+    async function cancel(el) {
+      const ok = await confirmDialog({
+        title: 'Cancel this ticket?',
+        message: 'The place goes back on sale and you will lose this ticket.',
+        confirmLabel: 'Cancel ticket',
+        danger: true,
+      });
+      if (!ok) return;
+      const btn = el.querySelector('.cancel-btn');
+      btn.disabled = true;
+      btn.textContent = 'Cancelling...';
+      try {
+        await api('/api/tickets/' + encodeURIComponent(el.dataset.id), { method: 'DELETE' });
+        el.classList.add('removing');
+        setTimeout(() => {
+          el.remove();
+          if (!box.querySelector('.stub')) emptyState();
+        }, 250);
+        toast('Ticket cancelled');
+      } catch (err) {
+        if (err.status === 401) { location.href = '/login'; return; }
+        toast(err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Cancel ticket';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

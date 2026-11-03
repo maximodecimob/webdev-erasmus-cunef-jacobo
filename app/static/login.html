@@ -2,54 +2,73 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Sign In - Vibe Tickets</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in - Vibe Tickets</title>
   <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Sign In</h1>
-    <form id="login-form" action="/login" method="POST">
-      <label>
-        Email address
-        <input type="email" name="email" required placeholder="customer@vibe.test">
-      </label>
-      <label>
-        Password
-        <input type="password" name="password" required placeholder="••••••••">
-      </label>
-      <button type="submit" id="submit-btn">Sign In</button>
-    </form>
-    <div id="status-message"></div>
-  </div>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="nav" id="nav"></header>
+  <main id="main" class="container container-narrow page">
+    <div class="card auth-card">
+      <h1>Log in</h1>
+      <form class="form" id="login-form" action="/login" method="POST">
+        <div class="field">
+          <label for="email">Email address</label>
+          <input class="input" id="email" type="email" name="email" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input class="input" id="password" type="password" name="password" required autocomplete="current-password">
+        </div>
+        <div id="status-message" aria-live="polite"></div>
+        <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Log in</button>
+      </form>
+      <div class="divider">or</div>
+      <a class="btn btn-ghost btn-block" href="/auth/google">Continue with Google</a>
+      <p class="auth-foot">New here? <a href="/register">Create an account</a></p>
+    </div>
+  </main>
+  <script src="/static/js/app.js"></script>
   <script>
+    getMe().then(renderNav);
+    const loginError = new URLSearchParams(location.search).get('error');
+    if (loginError) {
+      const box = document.getElementById('status-message');
+      box.className = 'state state-inline state-error';
+      box.textContent = loginError === 'google_not_configured' ? 'Google sign-in is not set up yet' : 'Google sign-in failed, please try again';
+    }
     const form = document.getElementById('login-form');
     const statusDiv = document.getElementById('status-message');
+    const submitBtn = document.getElementById('submit-btn');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      statusDiv.className = 'state-loading';
-      statusDiv.textContent = 'Signing in...';
-      
-      const formData = new FormData(form);
+      submitBtn.disabled = true;
+      statusDiv.className = 'state state-inline state-loading';
+      statusDiv.innerHTML = '<span class="row"><span class="spinner"></span> Signing in...</span>';
       try {
         const res = await fetch('/login', {
           method: 'POST',
-          body: formData,
+          body: new FormData(form),
           headers: { 'Accept': 'application/json' },
           redirect: 'follow'
         });
         if (res.ok) {
-          statusDiv.className = 'state-success';
-          statusDiv.textContent = 'Sign-in successful! Redirecting...';
+          statusDiv.className = 'state state-inline state-success';
+          statusDiv.textContent = 'Signed in. Redirecting...';
           window.location.href = '/events';
-        } else {
-          const data = await res.json().catch(() => ({ error: 'Invalid credentials' }));
-          statusDiv.className = 'state-error';
-          statusDiv.textContent = data.error || 'Sign-in failed.';
+          return;
         }
+        const data = await res.json().catch(() => ({}));
+        statusDiv.className = 'state state-inline state-error';
+        statusDiv.setAttribute('role', 'alert');
+        statusDiv.textContent = res.status === 401 ? 'Invalid email or password' : (data.error || 'Could not sign in, please try again');
       } catch (err) {
-        statusDiv.className = 'state-error';
-        statusDiv.textContent = 'An error occurred during sign-in.';
+        statusDiv.className = 'state state-inline state-error';
+        statusDiv.setAttribute('role', 'alert');
+        statusDiv.textContent = 'Could not reach the server';
       }
+      submitBtn.disabled = false;
     });
   </script>
 </body>

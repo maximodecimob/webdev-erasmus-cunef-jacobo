@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Event - Vibe Tickets</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="nav" id="nav"></header>
+  <main id="main" class="container page">
+    <p><a href="/events">&larr; All events</a></p>
+    <div id="event" aria-live="polite" aria-busy="true"></div>
+    <section id="attendees-section" class="stack" hidden aria-labelledby="attendees-title">
+      <h2 id="attendees-title">Attendees</h2>
+      <div id="attendees" aria-live="polite"></div>
+    </section>
+  </main>
+  <dialog id="buy-dialog" class="modal" aria-labelledby="buy-title">
+    <div id="buy-body" class="modal-content"></div>
+  </dialog>
+  <script src="/static/js/app.js"></script>
+  <script>
+    const eventId = location.pathname.split('/').filter(Boolean).pop();
+    const eventBox = document.getElementById('event');
+    const dialog = document.getElementById('buy-dialog');
+    const dialogBody = document.getElementById('buy-body');
+    const mePromise = getMe();
+    let ev = null;
+    let me = null;
+    let busy = false;
+
+    function skeleton() {
+      eventBox.setAttribute('aria-busy', 'true');
+      eventBox.innerHTML = '<div class="event-detail" role="status" aria-label="Loading event">'
+        + '<div class="skeleton" style="aspect-ratio:16/9"></div><div class="skeleton skeleton-line short"></div>'
+        + '<div class="skeleton skeleton-line"></div></div>';
+    }
+
+    function buyArea() {
+      if (!me) return '<a class="btn btn-primary btn-lg" href="/login">Log in to buy</a>';
+      if (me.role !== 'customer') return '';
+      if (ev.tickets_left === 0) return '<button class="btn btn-primary btn-lg" type="button" disabled>Sold out</button>';
+      return '<button class="btn btn-primary btn-lg" type="button" id="buy-btn">Buy ticket</button>';
+    }
+
+    function renderEvent() {
+      let left;
+      if (ev.tickets_left === 0) left = '<span class="badge badge-danger">Sold out</span>';
+      else if (ev.tickets_left < 10) left = ev.tickets_left + ' <span class="left-hint">Few left</span>';
+      else left = String(ev.tickets_left);
+      document.title = ev.title + ' - Vibe Tickets';
+      eventBox.innerHTML = '<article class="event-detail" style="--hue:' + hueFor(ev.id) + '">'
+        + '<div class="poster poster-lg">' + dateBadge(ev.date) + '</div>'
+        + '<h1 class="event-title">' + escapeHtml(ev.title) + '</h1>'
+        + '<dl class="facts">'
+        + '<div><dt>Venue</dt><dd>' + escapeHtml(ev.venue) + '</dd></div>'
+        + '<div><dt>Date</dt><dd>' + escapeHtml(formatDate(ev.date)) + '</dd></div>'
+        + '<div><dt>Price</dt><dd>' + escapeHtml(formatPrice(ev.price)) + '</dd></div>'
+        + '<div><dt>Tickets left</dt><dd>' + left + '</dd></div></dl>'
+        + '<div>' + buyArea() + '</div></article>';
+      const btn = document.getElementById('buy-btn');
+      if (btn) btn.addEventListener('click', openConfirm);
+    }
+
+    async function loadEvent() {
+      skeleton();
+      try {
+        ev = await api('/api/events/' + encodeURIComponent(eventId));
+        me = await mePromise;
+        renderEvent();
+        if (me && me.role === 'organizer') loadAttendees();
+      } catch (err) {
+        eventBox.innerHTML = '<div class="state state-error" role="alert"><p class="state-title">'
+          + (err.status === 404 ? 'Event not found' : 'Could not load this event') + '</p>'
+          + '<p>' + escapeHtml(err.message) + '</p><div class="row">'
+          + (err.status === 404 ? '' : '<button class="btn btn-ghost" id="retry" type="button">Retry</button>')
+          + '<a class="btn btn-ghost" href="/events">Back to events</a></div></div>';
+        const retry = document.getElementById('retry');
+        if (retry) retry.addEventListener('click', loadEvent);
+      }
+      eventBox.setAttribute('aria-busy', 'false');
+    }
+
+    function openConfirm() {
+      dialogBody.innerHTML = '<h2 id="buy-title">Confirm purchase</h2>'
+        + '<p class="muted">' + escapeHtml(ev.title) + '</p>'
+        + '<p class="price">' + escapeHtml(formatPrice(ev.price)) + '</p>'
+        + '<p class="modal-note">Demo payment: nothing is charged</p>'
+        + '<div class="modal-actions"><button class="btn btn-ghost" type="button" id="cancel-buy">Cancel</button>'
+        + '<button class="btn btn-primary" type="button" id="pay">Pay</button></div>';
+      document.getElementById('cancel-buy').addEventListener('click', () => dialog.close());
+      document.getElementById('pay').addEventListener('click', pay);
+      dialog.showModal();
+    }
+
+    async function pay() {
+      busy = true;
+      const payBtn = document.getElementById('pay');
+      payBtn.disabled = true;
+      document.getElementById('cancel-buy').disabled = true;
+      payBtn.innerHTML = '<span class="spinner"></span> Processing...';
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        const ticket = await api('/api/events/' + encodeURIComponent(eventId) + '/tickets', { method: 'POST' });
+        ev.tickets_left = Math.max(0, ev.tickets_left - 1);
+        dialogBody.innerHTML = '<h2 id="buy-title">You are in!</h2>'
+          + '<div class="state state-success state-inline" role="status"><span class="stub-label">Your ticket code</span>'
+          + '<span class="code">' + escapeHtml(ticket.code) + '</span></div>'
+          + '<div class="modal-actions"><button class="btn btn-ghost" type="button" id="close-buy">Close</button>'
+          + '<a class="btn btn-primary" href="/tickets">View my tickets</a></div>';
+        renderEvent();
+      } catch (err) {
+        dialogBody.innerHTML = '<h2 id="buy-title">Could not buy the ticket</h2>'
+          + '<div class="state state-error state-inline" role="alert">' + escapeHtml(err.message) + '</div>'
+          + '<div class="modal-actions"><button class="btn btn-ghost" type="button" id="close-buy">Close</button></div>';
+      }
+      busy = false;
+      document.getElementById('close-buy').addEventListener('click', () => dialog.close());
+      document.getElementById('close-buy').focus();
+    }
+
+    dialog.addEventListener('cancel', (e) => { if (busy) e.preventDefault(); });
+
+    async function loadAttendees() {
+      const section = document.getElementById('attendees-section');
+      const out = document.getElementById('attendees');
+      out.innerHTML = '<div class="state state-loading state-inline" role="status"><span class="row"><span class="spinner"></span> Loading attendees...</span></div>';
+      section.hidden = false;
+      try {
+        const rows = await api('/api/events/' + encodeURIComponent(eventId) + '/attendees');
+        if (rows.length === 0) {
+          out.innerHTML = '<div class="state"><p class="state-title">No tickets sold yet</p><p>Buyers will show up here.</p></div>';
+          return;
+        }
+        out.innerHTML = '<div class="table-wrap"><table class="table"><caption class="sr-only">People holding a ticket for this event</caption>'
+          + '<thead><tr><th scope="col">Email</th><th scope="col">Ticket code</th><th scope="col">Bought at</th></tr></thead><tbody>'
+          + rows.map((r) => '<tr><td>' + escapeHtml(r.email) + '</td><td class="code">' + escapeHtml(r.code)
+            + '</td><td>' + escapeHtml(formatDate(r.created_at)) + '</td></tr>').join('')
+          + '</tbody></table></div>';
+      } catch (err) {
+        if (err.status === 403) { section.hidden = true; return; }
+        out.innerHTML = '<div class="state state-error" role="alert"><p class="state-title">Could not load attendees</p><p>'
+          + escapeHtml(err.message) + '</p><button class="btn btn-ghost" id="retry-att" type="button">Retry</button></div>';
+        document.getElementById('retry-att').addEventListener('click', loadAttendees);
+      }
+    }
+
+    mePromise.then(renderNav);
+    loadEvent();
+  </script>
+</body>
+</html>

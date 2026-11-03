@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My events - Vibe Tickets</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="nav" id="nav"></header>
+  <main id="main" class="container page">
+    <div class="page-head">
+      <h1>My <span class="accent">events</span></h1>
+      <p>Create nights, read a poster, see who is coming.</p>
+    </div>
+    <div id="denied" hidden></div>
+    <div class="split" id="area">
+      <section class="card panel" aria-labelledby="form-title">
+        <h2 id="form-title">New event</h2>
+        <div class="reader">
+          <div class="field">
+            <label for="poster">Read details from a poster (optional)</label>
+            <input class="input" id="poster" type="file" accept="image/*">
+          </div>
+          <div id="poster-status" aria-live="polite"></div>
+        </div>
+        <form class="form" id="event-form" novalidate>
+          <div class="field">
+            <label for="title">Title</label>
+            <input class="input" id="title" name="title" required maxlength="120">
+            <p class="hint hint-suggest" id="hint-title" hidden>Suggested from the poster, please check</p>
+          </div>
+          <div class="field">
+            <label for="venue">Venue</label>
+            <input class="input" id="venue" name="venue" required maxlength="120">
+            <p class="hint hint-suggest" id="hint-venue" hidden>Suggested from the poster, please check</p>
+          </div>
+          <div class="field">
+            <label for="date">Date and time</label>
+            <input class="input" id="date" name="date" type="datetime-local" required>
+            <p class="hint hint-suggest" id="hint-date" hidden>Suggested from the poster, please check</p>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="price">Price (EUR)</label>
+              <input class="input" id="price" name="price" type="number" min="0" step="0.01" required>
+              <p class="hint hint-suggest" id="hint-price" hidden>Suggested from the poster, please check</p>
+            </div>
+            <div class="field">
+              <label for="total">Total tickets</label>
+              <input class="input" id="total" name="total" type="number" min="1" step="1" required>
+            </div>
+          </div>
+          <div id="form-status" aria-live="polite"></div>
+          <div class="row">
+            <button class="btn btn-primary" type="submit" id="save-btn">Create event</button>
+            <button class="btn btn-ghost" type="button" id="cancel-edit" hidden>Cancel edit</button>
+          </div>
+        </form>
+      </section>
+      <section aria-labelledby="list-title" class="stack">
+        <h2 id="list-title">Your events</h2>
+        <div id="events" aria-live="polite" aria-busy="true"></div>
+      </section>
+    </div>
+  </main>
+  <script src="/static/js/app.js"></script>
+  <script>
+    const listBox = document.getElementById('events');
+    const form = document.getElementById('event-form');
+    const formStatus = document.getElementById('form-status');
+    const saveBtn = document.getElementById('save-btn');
+    const cancelEdit = document.getElementById('cancel-edit');
+    const posterStatus = document.getElementById('poster-status');
+    const fields = ['title', 'venue', 'date', 'price'];
+    let events = [];
+    let editingId = null;
+
+    function deny(message) {
+      document.getElementById('area').hidden = true;
+      const d = document.getElementById('denied');
+      d.hidden = false;
+      d.innerHTML = '<div class="state state-error" role="alert"><p class="state-title">' + escapeHtml(message) + '</p>'
+        + '<a class="btn btn-ghost" href="/events">Back to events</a></div>';
+    }
+
+    function toLocalInput(iso) {
+      const d = new Date(iso);
+      const p = (n) => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+
+    function clearHints() {
+      fields.forEach((f) => { document.getElementById('hint-' + f).hidden = true; });
+    }
+    fields.forEach((f) => document.getElementById(f).addEventListener('input', () => {
+      document.getElementById('hint-' + f).hidden = true;
+    }));
+
+    function resetForm() {
+      form.reset();
+      clearHints();
+      editingId = null;
+      formStatus.innerHTML = '';
+      formStatus.className = '';
+      document.getElementById('form-title').textContent = 'New event';
+      saveBtn.textContent = 'Create event';
+      cancelEdit.hidden = true;
+    }
+    cancelEdit.addEventListener('click', resetForm);
+
+    function setStatus(kind, text) {
+      formStatus.className = 'state state-inline state-' + kind;
+      if (kind === 'error') formStatus.setAttribute('role', 'alert'); else formStatus.removeAttribute('role');
+      formStatus.textContent = text;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+      saveBtn.disabled = true;
+      formStatus.className = 'state state-inline state-loading';
+      formStatus.innerHTML = '<span class="row"><span class="spinner"></span> Saving...</span>';
+      const payload = {
+        title: form.elements.title.value.trim(),
+        venue: form.elements.venue.value.trim(),
+        date: new Date(form.elements.date.value).toISOString(),
+        price: Number(form.elements.price.value),
+        total_tickets: Number(form.elements.total.value),
+      };
+      try {
+        if (editingId === null) {
+          await api('/api/organizer/events', { method: 'POST', json: payload });
+          toast('Event created');
+        } else {
+          await api('/api/organizer/events/' + editingId, { method: 'PUT', json: payload });
+          toast('Event updated');
+        }
+        resetForm();
+        loadEvents(false);
+      } catch (err) {
+        if (err.status === 401) { location.href = '/login'; return; }
+        setStatus('error', err.message);
+      }
+      saveBtn.disabled = false;
+    });
+
+    document.getElementById('poster').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      posterStatus.className = 'state state-inline state-loading';
+      posterStatus.removeAttribute('role');
+      posterStatus.innerHTML = '<span class="row"><span class="spinner"></span> Reading the poster...</span>';
+      const body = new FormData();
+      body.append('image', file);
+      try {
+        const r = await api('/api/organizer/poster', { method: 'POST', body });
+        if (r.note) {
+          posterStatus.className = 'state state-inline';
+          posterStatus.textContent = r.note;
+          return;
+        }
+        let filled = 0;
+        const put = (id, value) => {
+          document.getElementById(id).value = value;
+          document.getElementById('hint-' + id).hidden = false;
+          filled++;
+        };
+        if (r.title) put('title', r.title);
+        if (r.venue) put('venue', r.venue);
+        if (r.price !== null && r.price !== undefined && r.price !== '' && !isNaN(Number(r.price))) put('price', Number(r.price));
+        if (r.date && !isNaN(new Date(r.date))) put('date', toLocalInput(r.date));
+        posterStatus.className = 'state state-inline ' + (filled ? 'state-success' : '');
+        posterStatus.textContent = filled ? 'Done. Check the suggested fields below.' : 'No details found on the poster. Please type them in.';
+      } catch (err) {
+        posterStatus.className = 'state state-inline state-error';
+        posterStatus.setAttribute('role', 'alert');
+        posterStatus.textContent = err.message + '. You can type the details in yourself.';
+      }
+    });
+
+    function row(ev) {
+      const pct = Math.min(100, Math.round((ev.tickets_sold / ev.total_tickets) * 100)) || 0;
+      return '<article class="card org-row" style="--hue:' + hueFor(ev.id) + '" data-id="' + escapeHtml(ev.id) + '">'
+        + '<h3 class="card-title">' + escapeHtml(ev.title) + '</h3>'
+        + '<p class="muted">' + escapeHtml(ev.venue) + ' &middot; ' + escapeHtml(formatDate(ev.date)) + '</p>'
+        + '<div class="card-foot"><span class="price">' + escapeHtml(formatPrice(ev.price)) + '</span>'
+        + '<span class="muted">' + escapeHtml(ev.tickets_sold) + ' / ' + escapeHtml(ev.total_tickets) + ' sold</span></div>'
+        + '<div class="meter" aria-hidden="true"><div class="meter-fill" style="width:' + pct + '%"></div></div>'
+        + '<div class="row"><a class="btn btn-ghost" href="/events/' + encodeURIComponent(ev.id) + '">Attendees</a>'
+        + '<button class="btn btn-ghost edit-btn" type="button">Edit</button>'
+        + '<button class="btn btn-danger delete-btn" type="button">Delete</button></div></article>';
+    }
+
+    function startEdit(ev) {
+      editingId = ev.id;
+      clearHints();
+      form.elements.title.value = ev.title;
+      form.elements.venue.value = ev.venue;
+      form.elements.date.value = toLocalInput(ev.date);
+      form.elements.price.value = ev.price;
+      form.elements.total.value = ev.total_tickets;
+      document.getElementById('form-title').textContent = 'Edit event';
+      saveBtn.textContent = 'Save changes';
+      cancelEdit.hidden = false;
+      form.elements.title.focus();
+    }
+
+    async function remove(ev) {
+      const ok = await confirmDialog({
+        title: 'Delete this event?',
+        message: 'Delete "' + ev.title + '"? This cannot be undone.',
+        confirmLabel: 'Delete event',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await api('/api/organizer/events/' + ev.id, { method: 'DELETE' });
+        toast('Event deleted');
+        if (editingId === ev.id) resetForm();
+        loadEvents(false);
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }
+
+    async function loadEvents(withSkeleton = true) {
+      if (withSkeleton) {
+        listBox.innerHTML = '<div class="stack" role="status" aria-label="Loading events">'
+          + '<div class="skeleton skeleton-card" style="min-height:9rem"></div>'.repeat(2) + '</div>';
+      }
+      try {
+        events = await api('/api/organizer/events');
+        if (events.length === 0) {
+          listBox.innerHTML = '<div class="state"><p class="state-title">You have no events yet</p>'
+            + '<p>Use the form to create your first night.</p></div>';
+        } else {
+          listBox.innerHTML = '<div class="stack">' + events.map(row).join('') + '</div>';
+          listBox.querySelectorAll('.card').forEach((el) => {
+            const ev = events.find((x) => String(x.id) === el.dataset.id);
+            el.querySelector('.edit-btn').addEventListener('click', () => startEdit(ev));
+            el.querySelector('.delete-btn').addEventListener('click', () => remove(ev));
+          });
+        }
+      } catch (err) {
+        if (err.status === 401) { location.href = '/login'; return; }
+        if (err.status === 403) { deny('This area is for organizers'); return; }
+        listBox.innerHTML = '<div class="state state-error" role="alert"><p class="state-title">Could not load your events</p><p>'
+          + escapeHtml(err.message) + '</p><button class="btn btn-ghost" id="retry" type="button">Retry</button></div>';
+        document.getElementById('retry').addEventListener('click', () => loadEvents());
+      }
+      listBox.setAttribute('aria-busy', 'false');
+    }
+
+    getMe().then((me) => {
+      if (!me) { location.href = '/login'; return; }
+      renderNav(me);
+      if (me.role !== 'organizer') { deny('This area is for organizers'); return; }
+      loadEvents();
+    });
+  </script>
+</body>
+</html>

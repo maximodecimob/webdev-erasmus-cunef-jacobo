@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "echo No Node tests yet",
-    "mcp": "node mcp-server/server.js"
+    "mcp": "python3 mcp-server/server.py"
   },
   "repository": {
     "type": "git",

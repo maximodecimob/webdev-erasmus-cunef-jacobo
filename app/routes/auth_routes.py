@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Request, Form, HTTPException, responses
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Body, Depends, Request, Form, HTTPException, responses
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from app.services.auth_service import AuthService
+from app.deps import current_user
 from app.utils import create_session_token
 import os
 
@@ -36,8 +37,25 @@ async def login_action(request: Request, email: str = Form(...), password: str =
     )
     return response
 
+def _session_response(response, user_id):
+    response.set_cookie(key="vibe_session", value=create_session_token(user_id),
+                        httponly=True, samesite="lax", secure=False)
+    return response
+
+
+@router.post("/api/auth/register", status_code=201)
+async def register(data: dict = Body(...)):
+    user = AuthService.register(data.get("email"), data.get("password"), data.get("role"))
+    return _session_response(JSONResponse(status_code=201, content=user), user["id"])
+
+
 @router.post("/logout")
 async def logout_action():
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie(key="vibe_session")
     return response
+
+
+@router.get("/api/me")
+async def me(user=Depends(current_user)):
+    return {"id": user["id"], "email": user["email"], "role": user["role"]}

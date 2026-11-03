@@ -10,7 +10,8 @@ See `SPEC.md` for goals, non-goals and acceptance criteria.
 ## Commands
 <!-- How to install, run, test. Keep these exact and working. -->
 - Install: `pip install -r requirements.txt`
-- Run: `uvicorn app.main:app --reload --port 3000`
+- Run: `uvicorn app.main:app --reload --port 3000` (on Windows, `.\run.ps1` also installs the libraries)
+- Seed test data: `python3 -m app.seed` (two accounts and three events, both passwords `secret123`)
 - Test: `python3 -m pytest`
 - Coverage: `python3 -m pytest --cov=app --cov-branch --cov-report=term-missing`
 - MCP server: `npm run --silent mcp`
@@ -19,6 +20,7 @@ See `SPEC.md` for goals, non-goals and acceptance criteria.
 <!-- Folder layout, naming, where business rules live, how errors are returned to the client. -->
 - Code lives in `app/`: `routes/` (HTTP only), `services/` (business rules), `repositories/` (SQL only), `migrations/` (numbered SQL files), `static/` (HTML, CSS, JS).
 - Business rules such as sold-out checks, one ticket per event and ownership live in `app/services/`, never in a route handler.
+- The database is a SQLite file whose path is `DATABASE_PATH` (default `vibe_tickets.db`). Tests use a temporary file set in `tests/conftest.py` and never touch the development database.
 - Errors return JSON `{"error": "<readable sentence>"}` with the right status code: 401 not signed in, 403 not allowed, 404 missing, 409 conflict.
 
 ## Layers
@@ -62,6 +64,8 @@ that talks to the database directly is a second, unguarded way into your data: n
 - adding, renaming or removing an MCP tool
 - changing a coverage threshold
 - sending user data to a third-party model
+- touching anything that handles a card number: the payment simulation must never store or log one
+- writing to the development database by hand, outside the app and the seed
 
 ## Never
 - commit secrets, passwords, API keys or an OAuth client secret

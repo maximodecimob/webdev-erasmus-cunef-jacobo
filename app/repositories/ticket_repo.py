@@ -4,13 +4,16 @@ from app.database import get_connection
 class TicketRepository:
     @staticmethod
     def create(event_id: int, customer_id: int, code: str):
+        """Insert only while places are left, in one statement; None when the event is full."""
         conn = get_connection()
         try:
-            cur = conn.execute(
-                "INSERT INTO tickets (event_id, customer_id, code) VALUES (?, ?, ?);",
-                (event_id, customer_id, code))
+            cur = conn.execute("""
+                INSERT INTO tickets (event_id, customer_id, code)
+                SELECT ?, ?, ? WHERE (SELECT COUNT(*) FROM tickets WHERE event_id = ? AND status = 'active')
+                                   < (SELECT total_tickets FROM events WHERE id = ?);
+            """, (event_id, customer_id, code, event_id, event_id))
             conn.commit()
-            return cur.lastrowid
+            return cur.lastrowid if cur.rowcount else None
         finally:
             conn.close()
 

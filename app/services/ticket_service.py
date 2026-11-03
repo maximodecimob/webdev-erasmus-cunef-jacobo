@@ -24,6 +24,8 @@ def buy_ticket(user, event_id):
         ticket_id = TicketRepository.create(event_id, user["id"], code)
     except sqlite3.IntegrityError:  # two clicks at once: the unique index wins
         raise AlreadyHolds()
+    if ticket_id is None:  # the insert refused: someone took the last place first
+        raise SoldOut()
     return {"id": ticket_id, "code": code, "event_id": event_id, "status": "active"}
 
 

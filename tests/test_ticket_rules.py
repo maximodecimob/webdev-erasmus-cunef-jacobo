@@ -80,3 +80,14 @@ def test_AC_17_a_ticket_of_an_event_that_started_cannot_be_cancelled(world):
     with pytest.raises(EventStarted):
         ticket_service.cancel_ticket(world.customer, ticket_id)
     assert len(ticket_service.my_tickets(world.customer)) == 1
+
+
+def test_AC_2_two_buyers_of_the_last_ticket_cannot_both_get_it(world, monkeypatch):
+    """AC-2: a stale places-left reading cannot oversell, the insert itself refuses"""
+    event_id = world.add_event(total_tickets=1)
+    ticket_service.buy_ticket(world.customer, event_id)
+    real = EventRepository.get_by_id
+    monkeypatch.setattr(EventRepository, "get_by_id", lambda i: {**real(i), "tickets_left": 1})
+    with pytest.raises(SoldOut):
+        ticket_service.buy_ticket(world.other, event_id)
+    assert world.count_tickets() == 1

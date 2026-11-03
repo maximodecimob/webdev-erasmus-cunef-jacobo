@@ -53,12 +53,13 @@ Plain HTML, CSS and JavaScript served by FastAPI, with design tokens in one CSS 
 
 ## Architecture
 One request traced through the layers: a customer presses "Pay" on /events/3.
-- Page: `app/static/event.html` calls `POST /api/events/3/tickets` with the session cookie (`api()` in `app/static/js/app.js`).
+- Browser, going out: the view is `app/static/event.html`. Its state lives in three script variables (`ev` the event, `me` the signed-in user, `busy` while paying). The Pay button calls `api()` in `app/static/js/app.js`, the one function that makes every REST call (`POST /api/events/3/tickets`, session cookie sent by the browser).
 - Route: `app/routes/ticket_routes.py` `buy()` takes the user from `current_user` (`app/deps.py`, 401 without a session) and calls the service; it holds no rule.
 - Service: `app/services/ticket_service.py` `buy_ticket()` holds the rules in this order: customers only (403), event exists (404), not started (409), one active ticket per customer (409), places left (409 "This event is sold out"). Failures are `AppError` subclasses from `app/errors.py`.
 - Repository: `app/repositories/ticket_repo.py` and `event_repo.py` hold the SQL (`?` placeholders) and open one SQLite connection per call (`app/database.py`).
 - Database: `tickets` in `app/migrations/001_initial_schema.sql`; `002_tickets_unique.sql` adds a unique index on active tickets, so two clicks at once cannot create two rows.
-- Back out: `AppError` is turned into `{"error": "<sentence>"}` with its status by the handler in `app/main.py`; the page shows that sentence.
+- Back out: `AppError` is turned into `{"error": "<sentence>"}` with its status by the handler in `app/main.py`. In the browser `api()` throws an Error with that sentence, and `event.html` shows it in the dialog (error state) or the ticket code (success state), then `renderEvent()` redraws from `ev`.
+- Rule against overselling: `ticket_repo.create()` inserts only while active tickets are below `total_tickets`, in one statement, so two buyers of the last place cannot both succeed; the service turns a refused insert into 409.
 - The MCP server (`mcp-server/server.py`) calls the same services, so it cannot bypass a rule.
 - Where my code does not match the layering: `app/routes/auth_routes.py` `login_action` builds the session cookie and the HTML error page itself instead of leaving that to a service, because it came from the slice-1 code and I left it unchanged.
 

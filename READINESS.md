@@ -1,12 +1,12 @@
 # Readiness report: Vibe Tickets
 
-Status: the code is ready to deploy, the deployment itself is not done yet. Every claim has a "How I checked" line.
+Status: deployed on Render, but still on temporary SQLite until `DATABASE_URL` (Neon) is set there, so data is lost on every redeploy. Every claim has a "How I checked" line.
 
 ## Live URL and how to verify it
 
-- Not live yet. `course.json` `liveUrl` is empty until the Render service exists.
+- Live at https://vibe-tickets-jacobo.onrender.com (Render free web service, Ohio, built from the `Dockerfile`).
 - Once live: `curl https://<name>.onrender.com/health` must print `{"status":"ok","db":"ok"}`, then sign in with the seeded accounts (`customer@vibe.test`, `organizer@vibe.test`).
-- How I checked: `/health` is covered by `test_AC_28` in `tests/test_organizer_api.py`; the live check is still to do.
+- How I checked: `curl https://vibe-tickets-jacobo.onrender.com/health` returned 200 `{"status":"ok","db":"ok"}` on 2026-11-10; `test_AC_28` covers the 503 case.
 
 ## Environment variables
 
@@ -46,7 +46,7 @@ Not measured yet. To do on the live site with the browser's Network tab.
 
 ## Known gaps, ranked by risk
 
-1. Not deployed: no Render service, no Neon database. Next step: create both, set the environment variables, set `liveUrl`.
+1. Render runs on temporary SQLite: `DATABASE_URL` for the Neon production branch is not set there yet, and Google sign-in is not configured on the live site. Next step: set `DATABASE_URL`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Render.
 2. The Postgres path has not been run against a real Postgres (Docker was not running when it was written), only SQLite is tested. Next step: run `DATABASE_URL=... python -m pytest` against a throwaway Postgres.
 3. UI items not measured: contrast, widths 380/768/1280, 44 px touch targets, keyboard-only flow, screenshots. Next step: measure and tick in `docs/UI.md`.
 4. No CSRF token on the cookie session. Next step: SameSite cookie check or token.

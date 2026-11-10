@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.gzip import GZipMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
@@ -10,6 +11,19 @@ from app.routes import auth_routes, event_routes, google_routes, organizer_route
 from app.database import ping, run_migrations
 
 app = FastAPI(title="Vibe Tickets")
+
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+
+@app.middleware("http")
+async def always_revalidate(request: Request, call_next):
+    """Pages and scripts are checked against their ETag on every load, so a new deploy is never hidden by a stale copy."""
+    response = await call_next(request)
+    if "cache-control" not in response.headers and (
+            request.url.path.startswith("/static") or response.headers.get("content-type", "").startswith("text/html")):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

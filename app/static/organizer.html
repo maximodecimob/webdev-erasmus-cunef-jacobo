@@ -135,9 +135,11 @@
         total_tickets: Number(form.elements.total.value),
       };
       try {
+        const creating = editingId === null;
         let id = editingId;
-        if (id === null) {
+        if (creating) {
           id = (await api('/api/organizer/events', { method: 'POST', json: payload })).id;
+          editingId = id;
         } else {
           await api('/api/organizer/events/' + id, { method: 'PUT', json: payload });
         }
@@ -146,7 +148,7 @@
           body.append('image', posterFile);
           await api('/api/organizer/events/' + id + '/poster', { method: 'POST', body });
         }
-        toast(editingId === null ? 'Event created' : 'Event updated');
+        toast(creating ? 'Event created' : 'Event updated');
         resetForm();
         loadEvents(false);
       } catch (err) {

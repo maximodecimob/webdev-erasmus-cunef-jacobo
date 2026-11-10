@@ -271,12 +271,12 @@ a:hover { color: var(--color-accent-text-2); }
 .input:focus-visible { border-color: var(--color-focus); box-shadow: var(--glow-magenta); }
 .input::placeholder { color: var(--color-text-muted); opacity: 0.8; }
 .input-wrap { position: relative; display: grid; }
-.input-wrap .input { padding-right: 5rem; }
+.input-wrap .input { padding-right: 3.5rem; }
 .toggle-pw {
   position: absolute; top: 50%; right: var(--space-2); transform: translateY(-50%);
-  background: none; border: 0; padding: var(--space-2) var(--space-3); cursor: pointer;
-  color: var(--color-accent-text); font: inherit; font-size: var(--text-sm); font-weight: 700;
-  border-radius: var(--radius-sm);
+  display: grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--color-text-muted); border-radius: var(--radius-sm);
 }
 .toggle-pw:hover { color: var(--color-accent-text-2); }
 .toggle-pw:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }

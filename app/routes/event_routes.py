@@ -18,4 +18,4 @@ def api_event(event_id: int):
 @router.get("/api/events/{event_id}/poster")
 def api_poster(event_id: int):
     image, content_type = EventService.get_poster(event_id)
-    return Response(content=image, media_type=content_type)
+    return Response(content=image, media_type=content_type, headers={"Cache-Control": "public, max-age=60"})

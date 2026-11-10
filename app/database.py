@@ -11,6 +11,11 @@ POSTGRES = bool(DATABASE_URL)
 if POSTGRES:
     import psycopg
     from psycopg.rows import dict_row
+    from psycopg_pool import ConnectionPool
+    # Opening a TLS connection to Neon for every query is slow, so connections are reused.
+    _pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=5, kwargs={"row_factory": dict_row},
+                           check=ConnectionPool.check_connection, open=False)
+    _pool.open()
     IntegrityErrors = (sqlite3.IntegrityError, psycopg.IntegrityError)
 else:
     IntegrityErrors = (sqlite3.IntegrityError,)
@@ -42,7 +47,10 @@ class _PgConnection:
     """Gives a Postgres connection the small part of the sqlite3 API the repositories use."""
     def __init__(self, conn):
         self._conn = conn
-        self.commit, self.rollback, self.close = conn.commit, conn.rollback, conn.close
+        self.commit, self.rollback = conn.commit, conn.rollback
+
+    def close(self):
+        _pool.putconn(self._conn)
 
     def execute(self, sql, params=()):
         sql = sql.replace("?", "%s")
@@ -69,7 +77,7 @@ def ping():
 
 def get_connection():
     if POSTGRES:
-        return _PgConnection(psycopg.connect(DATABASE_URL, row_factory=dict_row))
+        return _PgConnection(_pool.getconn())
     conn = sqlite3.connect(DATABASE_PATH, check_same_thread=False)
     conn.row_factory = _dict_factory
     conn.execute("PRAGMA foreign_keys = ON")

@@ -3,6 +3,8 @@ import tempfile
 
 # Must run before app.database is imported: tests use their own SQLite file, never the development database.
 os.environ.setdefault("SESSION_SECRET", "test-secret")
+# Tests never touch the database in .env (Neon production): set TEST_DATABASE_URL to run them on a throwaway Postgres.
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "")
 os.environ["DATABASE_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
 
 import datetime
@@ -35,13 +37,14 @@ def world():
     """Seeded database plus helpers to add the rows a test needs."""
     seed_database()
     other_id = _run("INSERT INTO users (email, password_hash, role) VALUES ('other@vibe.test', 'x', 'customer')")
+    organizer = UserRepository.get_by_email("organizer@vibe.test")
     return SimpleNamespace(
         customer=UserRepository.get_by_email("customer@vibe.test"),
         other=UserRepository.get_by_id(other_id),
-        organizer=UserRepository.get_by_email("organizer@vibe.test"),
+        organizer=organizer,
         add_event=lambda total_tickets=100, days=7, title="Test Event": _run(
-            "INSERT INTO events (title, venue, date, price, total_tickets, organizer_id) VALUES (?, 'Test Venue', ?, 10, ?, 2)",
-            (title, _text(days), total_tickets)),
+            "INSERT INTO events (title, venue, date, price, total_tickets, organizer_id) VALUES (?, 'Test Venue', ?, 10, ?, ?)",
+            (title, _text(days), total_tickets, organizer["id"])),
         add_ticket=lambda event_id, customer_id, code="SEED-1": _run(
             "INSERT INTO tickets (event_id, customer_id, code) VALUES (?, ?, ?)", (event_id, customer_id, code)),
         count_tickets=lambda: get_connection().execute("SELECT COUNT(*) AS n FROM tickets").fetchone()["n"],

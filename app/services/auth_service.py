@@ -1,9 +1,9 @@
 import re
-import sqlite3
 
 import bcrypt
 
 from app.errors import Conflict, Invalid
+from app.database import IntegrityErrors
 from app.repositories.user_repo import UserRepository
 
 class AuthService:
@@ -29,6 +29,6 @@ class AuthService:
         hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         try:
             user_id = UserRepository.create(email, hashed, role)
-        except sqlite3.IntegrityError:
+        except IntegrityErrors:
             raise Conflict("An account with this e-mail already exists")
         return {"id": user_id, "email": email, "role": role}

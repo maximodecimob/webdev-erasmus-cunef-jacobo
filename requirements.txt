@@ -9,4 +9,4 @@ pytest-cov
 httpx
 itsdangerous
 python-multipart
-psycopg[binary]
+psycopg[binary,pool]

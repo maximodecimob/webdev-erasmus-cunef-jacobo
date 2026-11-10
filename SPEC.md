@@ -11,7 +11,7 @@ Club events.
 - No venue inventory such as drinks or merchandise, and no bar management. Ticket stock per event is allowed.
 - No chat or messaging between users.
 - No search, filters, sorting or favorites in v1: the events list is one chronological list.
-- No event recommender and no text generator in v1: the only model feature is the poster reader.
+- No event recommender, no text generator and no model feature in v1.
 
 ## Goals
 - A customer signs in, sees the upcoming club events in Madrid with the number of tickets left, and buys a ticket with a simulated payment.
@@ -28,10 +28,7 @@ Club events.
 - Automated tests run against a separate test database and never delete rows from the development database.
 
 ## The model feature
-- Model: Gemini 2.5 Flash with vision, called from services/poster.py and nowhere else.
-- Input: the poster image an organizer uploads, and nothing about any customer. The image is the only data that leaves the app.
-- Output: a suggested title, date, venue and price, shown in the event form for the organizer to correct.
-- When it fails: no key, a timeout of 30 seconds or a 429 all leave the form empty with a note saying to type the details in. Nothing is saved until the organizer presses save, and a date the model returns that does not parse is left blank rather than guessed.
+- None. The app has no model feature, so no user data leaves the app for a model provider. A poster is a plain image the organizer uploads; the app only stores and shows it (AC-27).
 
 ## Auth
 - Local: e-mail and password, stored as a bcrypt hash.
@@ -49,7 +46,7 @@ Club events.
 | `organizer_events` | Lists the organizer's own events with tickets sold | an organizer |
 
 ## UI
-Plain HTML, CSS and JavaScript served by FastAPI, with design tokens in one CSS file. Dark nightclub look: near-black background, violet and magenta accents, large event cards. Six screens: the public home with the list of upcoming events and a Log in button on each, sign in, register, one event with its buy button (and, for its organizer, the buyers), my tickets, and the organizer's own events with the poster reader. The checklist is in docs/UI.md.
+Plain HTML, CSS and JavaScript served by FastAPI, with design tokens in one CSS file. Dark nightclub look: near-black background, violet and magenta accents, large event cards. Six screens: the public home with the list of upcoming events and a Log in button on each, sign in, register, one event with its buy button (and, for its organizer, the buyers), my tickets, and the organizer's own events with a poster upload. The checklist is in docs/UI.md.
 
 ## Architecture
 One request traced through the layers: a customer presses "Pay" on /events/3.
@@ -70,7 +67,7 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 | Event (`/events/{id}`) | browser | the buy dialog and tickets-left update without reloading | skeleton block |
 | Login, Register | server sends static HTML, the form posts with `fetch` | errors show in place without losing what was typed | "Signing in..." spinner |
 | My tickets | browser | cancelling removes a row without reloading | skeleton rows |
-| Organizer | browser | the poster reader fills the form after a slow model call | "Reading the poster..." spinner |
+| Organizer | browser | saving an event and its poster image happens without leaving the page | "Saving..." spinner |
 
 ## Acceptance criteria
 - [AC-1] A signed-in customer who opens /events sees only events whose date is in the future, each with title, venue, date, price and tickets left.
@@ -79,7 +76,6 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 - [AC-4] A customer who already holds a ticket for an event and presses buy again gets 409 and still has one row in tickets.
 - [AC-6] An organizer who opens one of their events sees the customers who hold a ticket for it, and a customer who opens the same event does not see that list.
 - [AC-7] Signing in with Google using an address that already has a password account signs into that account, and no second row appears in users.
-- [AC-8] With no model key set, uploading a poster leaves the form fields empty and shows the note to type the details in.
 - [AC-12] A customer who cancels their own ticket before the event starts sees it removed from My tickets, and the tickets left of that event rise by one.
 
 ### Slice 1: sign-in and the upcoming events list
@@ -102,8 +98,6 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 - [AC-21] An organizer who edits or deletes an event of another organizer gets 403 and the event is unchanged.
 - [AC-22] An organizer who lowers the total tickets of an event below the number already sold gets 409 and the event is unchanged.
 
-### Slice 4: the poster reader
-- [AC-23] A poster answer that is not valid JSON, or whose date does not parse, is ignored: the date field stays empty and the other valid fields are still filled. A good answer fills the four fields.
 
 - [AC-27] A poster image uploaded by the organizer of an event is saved with the event, shown on the event cards and the event page, and served by `/api/events/{id}/poster`. A file that is not an image gets 422, and another user gets 403; nothing is stored in either case.
 
@@ -130,7 +124,6 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 | AC-20 | test_organizer_api.py::test_AC_20_invalid_events_are_422_and_change_nothing |
 | AC-21 | test_organizer_api.py::test_AC_21_another_organizers_event_cannot_be_edited_or_deleted |
 | AC-22 | test_organizer_api.py::test_AC_22_lowering_total_below_sold_is_409 |
-| AC-23 | test_poster.py::test_AC_23_a_good_answer_fills_the_four_fields, test_poster.py::test_AC_23_an_answer_that_is_not_json_is_ignored (+1) |
 | AC-24 | test_mcp.py::test_AC_24_mcp_list_events_equals_the_api, test_mcp.py::test_AC_24_mcp_buy_ticket_shows_up_in_the_api_and_errors_are_tool_results (+1) |
 | AC-25 | test_mcp.py::test_AC_25_missing_or_wrong_token_is_refused_and_changes_nothing, test_mcp.py::test_AC_25_without_MCP_TOKEN_every_tool_call_is_refused |
 | AC-26 | test_ticket_api.py::test_AC_26_an_organizer_buying_is_403, test_ticket_rules.py::test_AC_26_an_organizer_cannot_buy_a_ticket |

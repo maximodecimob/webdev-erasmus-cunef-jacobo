@@ -12,40 +12,34 @@
   <main id="main" class="container page">
     <div class="page-head">
       <h1>My <span class="accent">events</span></h1>
-      <p>Create nights, read a poster, see who is coming.</p>
+      <p>Create nights, add a poster, see who is coming.</p>
     </div>
     <div id="denied" hidden></div>
     <div class="split" id="area">
       <section class="card panel" aria-labelledby="form-title">
         <h2 id="form-title">New event</h2>
-        <div class="reader">
-          <div class="field">
-            <label for="poster">Read details from a poster (optional)</label>
-            <input class="input" id="poster" type="file" accept="image/*">
-          </div>
+        <div class="field">
+          <label for="poster">Poster image (optional)</label>
+          <input class="input" id="poster" type="file" accept="image/*">
           <div id="poster-status" aria-live="polite"></div>
         </div>
         <form class="form" id="event-form" novalidate>
           <div class="field">
             <label for="title">Title</label>
             <input class="input" id="title" name="title" required maxlength="120">
-            <p class="hint hint-suggest" id="hint-title" hidden>Suggested from the poster, please check</p>
           </div>
           <div class="field">
             <label for="venue">Venue</label>
             <input class="input" id="venue" name="venue" required maxlength="120">
-            <p class="hint hint-suggest" id="hint-venue" hidden>Suggested from the poster, please check</p>
           </div>
           <div class="field">
             <label for="date">Date and time</label>
             <input class="input" id="date" name="date" type="datetime-local" required>
-            <p class="hint hint-suggest" id="hint-date" hidden>Suggested from the poster, please check</p>
           </div>
           <div class="form-row">
             <div class="field">
               <label for="price">Price (EUR)</label>
               <input class="input" id="price" name="price" type="number" min="0" step="0.01" required>
-              <p class="hint hint-suggest" id="hint-price" hidden>Suggested from the poster, please check</p>
             </div>
             <div class="field">
               <label for="total">Total tickets</label>
@@ -73,7 +67,6 @@
     const saveBtn = document.getElementById('save-btn');
     const cancelEdit = document.getElementById('cancel-edit');
     const posterStatus = document.getElementById('poster-status');
-    const fields = ['title', 'venue', 'date', 'price'];
     let events = [];
     let editingId = null;
     let posterFile = null;
@@ -92,16 +85,8 @@
       return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
     }
 
-    function clearHints() {
-      fields.forEach((f) => { document.getElementById('hint-' + f).hidden = true; });
-    }
-    fields.forEach((f) => document.getElementById(f).addEventListener('input', () => {
-      document.getElementById('hint-' + f).hidden = true;
-    }));
-
     function resetForm() {
       form.reset();
-      clearHints();
       editingId = null;
       posterFile = null;
       document.getElementById('poster').value = '';
@@ -158,40 +143,7 @@
       saveBtn.disabled = false;
     });
 
-    document.getElementById('poster').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      posterFile = file;
-      posterStatus.className = 'state state-inline state-loading';
-      posterStatus.removeAttribute('role');
-      posterStatus.innerHTML = '<span class="row"><span class="spinner"></span> Reading the poster...</span>';
-      const body = new FormData();
-      body.append('image', file);
-      try {
-        const r = await api('/api/organizer/poster', { method: 'POST', body });
-        if (r.note) {
-          posterStatus.className = 'state state-inline';
-          posterStatus.textContent = r.note;
-          return;
-        }
-        let filled = 0;
-        const put = (id, value) => {
-          document.getElementById(id).value = value;
-          document.getElementById('hint-' + id).hidden = false;
-          filled++;
-        };
-        if (r.title) put('title', r.title);
-        if (r.venue) put('venue', r.venue);
-        if (r.price !== null && r.price !== undefined && r.price !== '' && !isNaN(Number(r.price))) put('price', Number(r.price));
-        if (r.date && !isNaN(new Date(r.date))) put('date', toLocalInput(r.date));
-        posterStatus.className = 'state state-inline ' + (filled ? 'state-success' : '');
-        posterStatus.textContent = filled ? 'Done. Check the suggested fields below.' : 'No details found on the poster. Please type them in.';
-      } catch (err) {
-        posterStatus.className = 'state state-inline state-error';
-        posterStatus.setAttribute('role', 'alert');
-        posterStatus.textContent = err.message + '. You can type the details in yourself.';
-      }
-    });
+    document.getElementById('poster').addEventListener('change', (e) => { posterFile = e.target.files[0] || null; });
 
     function row(ev) {
       const pct = Math.min(100, Math.round((ev.tickets_sold / ev.total_tickets) * 100)) || 0;
@@ -208,7 +160,6 @@
 
     function startEdit(ev) {
       editingId = ev.id;
-      clearHints();
       form.elements.title.value = ev.title;
       form.elements.venue.value = ev.venue;
       form.elements.date.value = toLocalInput(ev.date);

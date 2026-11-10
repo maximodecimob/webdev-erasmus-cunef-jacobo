@@ -48,12 +48,7 @@ A screen that only handles "it worked" is a screen that lies to the user on the 
 
 ## The model feature
 
-- [x] **It shows that it is thinking.** A model call is slow and a free service may have been asleep; a frozen button is the worst possible answer.
-  - how I checked: the poster reader shows a spinner and "Reading the poster..." (read the code).
-- [x] **It shows when it failed,** and the rest of the screen still works.
-  - how I checked: a failed call prints the error and says the form can be filled in by hand (read the code).
-- [x] **The user can tell the model's suggestion from a fact.** It is labelled as a suggestion, not presented as data the app knows.
-  - how I checked: suggested fields show "Suggested from the poster, please check".
+- The app has no model feature, so these items do not apply.
 
 ## Decisions
 
@@ -63,7 +58,7 @@ A screen that only handles "it worked" is a screen that lies to the user on the 
 ## Known gaps
 
 - Not yet checked: keyboard-only walk through the main flow, and that nothing jumps while loading (no layout-shift measurement).
-- No screenshots yet: the Evidence section below needs the four states of one screen and the poster reader thinking and failing.
+- No screenshots yet: the Evidence section below needs the four states of one screen.
 
 ## Evidence
 

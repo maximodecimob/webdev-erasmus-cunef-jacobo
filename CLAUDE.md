@@ -9,4 +9,3 @@ See AGENTS.md. It is the single source of instructions for any agent working in 
 - Run `python3 -m pytest` before saying a step is done, and say what you ran.
 - Do not commit, push, install dependencies or edit a migration that already ran: those are in the always-ask list in AGENTS.md.
 - UI is plain HTML, CSS and JavaScript. All colours, sizes and spacing come from the design tokens in `app/static/css/styles.css`. Every screen has loading, empty, error and success states.
-- The Gemini key is used only in `app/services/poster.py`.

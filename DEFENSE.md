@@ -4,20 +4,20 @@ Draft written with Claude from the code. Read it, change anything that is not ho
 
 ## What it does
 
-Vibe Tickets lets customers in Madrid buy tickets for club events with a simulated payment. Organizers publish events, can read a poster with a model to fill the form, and see who bought a ticket.
+Vibe Tickets lets customers in Madrid buy tickets for club events with a simulated payment. Organizers publish events with a poster image and see who bought a ticket.
 
 ## The three files I will open
 
 1. `app/services/ticket_service.py`, because it holds the buying rules (customers only, not started, one ticket each, not sold out) and knows nothing about HTTP.
 2. `app/repositories/ticket_repo.py`, because it is the only place with the SQL, and it inserts only while places are left, in one statement, so two buyers of the last place cannot both win.
-3. `app/services/poster.py`, because it is the only file that names the model provider, with a timeout, a fallback and a check of the answer.
+3. `app/services/organizer_service.py`, because it holds the owner checks and the poster upload rules (image only, 5 MB at most) away from the routes.
 
 ## Decisions I can defend
 
 - Stack: FastAPI with plain HTML, CSS and JavaScript. I rejected a JS framework because the screens are small and a build step adds nothing.
 - Where the rules live: in `app/services/`. Routes only map results to status codes; the MCP tools call the same services. I rejected rules in routes because the MCP server would then need a copy.
 - Authentication and authorization: password with a bcrypt hash and Google sign-in with state and PKCE, both ending in one signed session cookie. Ownership checks are in the service layer (401 not signed in, 403 not yours).
-- The model, and why that one: Gemini, because it reads images and has a free tier. The app works without a key.
+- The model: there is none. I rejected adding one because the project did not need it, so nothing about a customer or an organizer is sent to a provider.
 - What the MCP server exposes, and what it deliberately does not: the same operations as the API, acting as one user through a token; no tool writes SQL and none acts as admin.
 - The database shape: users, events and tickets, where tickets is the many-to-many table between customers and events. SQLite locally and Postgres on Neon in production, switched by `DATABASE_URL`. I rejected Render's free Postgres because it is deleted after 30 days.
 

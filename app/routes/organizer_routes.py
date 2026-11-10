@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Depends, File, Response, UploadFile
 
 from app.deps import current_user
-from app.services import organizer_service, poster
+from app.services import organizer_service
 
 router = APIRouter()
 
@@ -31,11 +31,6 @@ def delete(event_id: int, user=Depends(current_user)):
 def attendees(event_id: int, user=Depends(current_user)):
     return organizer_service.attendees(user, event_id)
 
-
-@router.post("/api/organizer/poster")
-async def read_poster(image: UploadFile = File(...), user=Depends(current_user)):
-    organizer_service.require_organizer(user)
-    return poster.read_poster(await image.read(), image.content_type or "image/png")
 
 
 @router.post("/api/organizer/events/{event_id}/poster")

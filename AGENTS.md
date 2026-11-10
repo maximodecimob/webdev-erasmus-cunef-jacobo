@@ -35,12 +35,7 @@ rules and knows nothing about HTTP or about MCP. Only the data layer writes SQL.
 that talks to the database directly is a second, unguarded way into your data: never add one.
 
 ## The model feature
-<!-- Provider, env var, and the call site. -->
-- The provider is named in exactly one file: `app/services/poster.py`. 
-- The key comes from the environment variable `GEMINI_API_KEY` and is never committed or logged.
-- Every call has a timeout and a deterministic fallback, so the app still works when the provider is down or rate-limited.
-- The model's output is re-checked against real data before anything is saved or shown.
-- Tests never call the provider: they pass in a fake client.
+- There is none. If one is added later, name the provider in exactly one file, keep its key in an environment variable, and give every call a timeout and a fallback.
 
 ## The MCP server
 <!-- Where it lives and how it authenticates. -->

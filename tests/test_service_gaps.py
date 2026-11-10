@@ -4,7 +4,7 @@ import pytest
 
 from app.errors import AlreadyHolds, EventStarted, Invalid, NotFound
 from app.repositories.ticket_repo import TicketRepository
-from app.services import google_auth, organizer_service, poster, ticket_service
+from app.services import google_auth, organizer_service, ticket_service
 from app.services.auth_service import AuthService
 
 
@@ -36,21 +36,6 @@ def test_AC_27_a_poster_over_5_mb_is_refused(world):
     event_id = world.add_event()
     with pytest.raises(Invalid):
         organizer_service.set_poster(world.organizer, event_id, b"0" * (organizer_service.MAX_POSTER_BYTES + 1), "image/png")
-
-
-def test_AC_23_ask_model_sends_the_image_and_reads_the_text(monkeypatch):
-    """AC-23: the model call returns the text of the first candidate"""
-    class Res:
-        def raise_for_status(self): pass
-        def json(self): return {"candidates": [{"content": {"parts": [{"text": "hello"}]}}]}
-    monkeypatch.setenv("GEMINI_API_KEY", "fake")
-    monkeypatch.setattr(poster.httpx, "post", lambda *a, **k: Res())
-    assert poster.ask_model(b"img", "image/png") == "hello"
-
-
-def test_AC_23_a_date_without_a_zone_is_read_as_utc():
-    """AC-23: a date without a zone is read as UTC"""
-    assert poster._date("2030-05-01T22:00:00") == "2030-05-01T22:00:00Z"
 
 
 def test_AC_2_buying_a_missing_event_is_404(world):

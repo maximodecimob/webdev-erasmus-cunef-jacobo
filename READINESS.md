@@ -17,7 +17,6 @@ Status: deployed on Render, but still on temporary SQLite until `DATABASE_URL` (
 | DATABASE_PATH | SQLite file, local development only | default `vibe_tickets.db` | no |
 | PUBLIC_BASE_URL | base of the Google redirect URI | the Render URL | no |
 | GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | Google sign-in | Google Cloud console | secret, and the id is not |
-| GEMINI_API_KEY / MODEL_NAME | poster reader; optional, the app works without it | aistudio.google.com | yes |
 | MCP_TOKEN | session token the MCP server acts with | a signed session token | yes |
 
 How I checked: `.env.example` lists all of them; `app/utils.py` raises "SESSION_SECRET is not set" when it is empty.
@@ -28,7 +27,6 @@ How I checked: `.env.example` lists all of them; `app/utils.py` raises "SESSION_
 - Broken JSON: 400 "The request body is not valid JSON". Unauthenticated write: 401. Another user's event: 403. Checked by `test_AC_29` and the AC-21 tests.
 - Unknown page: 404 `{"error":"Page not found"}`. No stack trace is ever sent to the client.
 - Bad deploy and rollback: not yet timed; to do on Render.
-- Model provider down or no key: the poster form stays empty with a note (AC-8, AC-23).
 
 ## Four states of one screen
 
@@ -54,9 +52,7 @@ Not measured yet. To do on the live site with the browser's Network tab.
 
 ## Model feature
 
-- What leaves the app: only the poster image the organizer uploads, sent to the Gemini API from `app/services/poster.py`. No emails or ticket data.
-- Cost: not measured; the free Gemini tier charges nothing.
-- Provider down, slow or no key: 30 s timeout, then the fields stay empty with a note; the answer is re-checked before it fills the form (AC-8, AC-23).
+- There is none: the app has no model feature, so no user data leaves the app for a model provider and there is no provider cost or outage to handle.
 
 ## MCP
 

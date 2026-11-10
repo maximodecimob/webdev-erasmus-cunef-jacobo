@@ -52,7 +52,7 @@
       else left = String(ev.tickets_left);
       document.title = ev.title + ' - Vibe Tickets';
       eventBox.innerHTML = '<article class="event-detail" style="--hue:' + hueFor(ev.id) + '">'
-        + '<div class="poster poster-lg">' + dateBadge(ev.date) + '</div>'
+        + '<div class="poster poster-lg">' + posterImg(ev) + dateBadge(ev.date) + '</div>'
         + '<h1 class="event-title">' + escapeHtml(ev.title) + '</h1>'
         + '<dl class="facts">'
         + '<div><dt>Venue</dt><dd>' + escapeHtml(ev.venue) + '</dd></div>'

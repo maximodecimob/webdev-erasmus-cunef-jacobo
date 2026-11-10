@@ -19,7 +19,10 @@
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <input class="input" id="password" type="password" name="password" required autocomplete="current-password">
+          <div class="input-wrap">
+            <input class="input" id="password" type="password" name="password" required autocomplete="current-password">
+            <button class="toggle-pw" id="toggle-pw" type="button" aria-controls="password" aria-pressed="false">Show</button>
+          </div>
         </div>
         <div id="status-message" aria-live="polite"></div>
         <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Log in</button>
@@ -38,6 +41,14 @@
       box.className = 'state state-inline state-error';
       box.textContent = loginError === 'google_not_configured' ? 'Google sign-in is not set up yet' : 'Google sign-in failed, please try again';
     }
+    const pw = document.getElementById('password');
+    const togglePw = document.getElementById('toggle-pw');
+    togglePw.addEventListener('click', () => {
+      const show = pw.type === 'password';
+      pw.type = show ? 'text' : 'password';
+      togglePw.textContent = show ? 'Hide' : 'Show';
+      togglePw.setAttribute('aria-pressed', String(show));
+    });
     const form = document.getElementById('login-form');
     const statusDiv = document.getElementById('status-message');
     const submitBtn = document.getElementById('submit-btn');

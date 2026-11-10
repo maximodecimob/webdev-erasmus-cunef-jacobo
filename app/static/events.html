@@ -42,7 +42,7 @@
       else if (ev.tickets_left < 10) left = '<span class="left-hint">Few left: ' + ev.tickets_left + '</span>';
       else left = '<span class="muted">' + ev.tickets_left + ' left</span>';
       return '<article class="card card-lift" style="--hue:' + hueFor(ev.id) + '">'
-        + '<a class="poster" href="' + url + '" tabindex="-1" aria-hidden="true">' + dateBadge(ev.date) + '</a>'
+        + '<a class="poster" href="' + url + '" tabindex="-1" aria-hidden="true">' + posterImg(ev) + dateBadge(ev.date) + '</a>'
         + '<div class="card-body">'
         + '<h2 class="card-title"><a href="' + url + '">' + escapeHtml(ev.title) + '</a></h2>'
         + '<p class="muted">' + escapeHtml(ev.venue) + '</p>'

@@ -46,7 +46,7 @@ def _clean(data):
 
 def list_own(user):
     require_organizer(user)
-    return [{**e, "date": to_iso(e["date"]), "price": float(e["price"])}
+    return [{**e, "date": to_iso(e["date"]), "price": float(e["price"]), "has_poster": bool(e["has_poster"])}
             for e in EventRepository.list_by_organizer(user["id"])]
 
 
@@ -74,3 +74,16 @@ def delete(user, event_id):
 def attendees(user, event_id):
     _own_event(user, event_id)
     return [dict(a) for a in TicketRepository.list_attendees(event_id)]
+
+
+MAX_POSTER_BYTES = 5 * 1024 * 1024
+
+
+def set_poster(user, event_id, image, content_type):
+    _own_event(user, event_id)
+    if not content_type.startswith("image/") or not image:
+        raise Invalid("The poster must be an image")
+    if len(image) > MAX_POSTER_BYTES:
+        raise Invalid("The poster must be 5 MB or smaller")
+    EventRepository.set_poster(event_id, image, content_type)
+    return {"id": event_id}

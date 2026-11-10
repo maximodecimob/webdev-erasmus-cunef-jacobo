@@ -7,7 +7,8 @@ class EventRepository:
         try:
             return conn.execute("""
                 SELECT e.id, e.title, e.venue, e.date, e.price, e.total_tickets,
-                       (e.total_tickets - COUNT(t.id)) AS tickets_left
+                       (e.total_tickets - COUNT(t.id)) AS tickets_left,
+                       (e.poster_type IS NOT NULL) AS has_poster
                 FROM events e
                 LEFT JOIN tickets t ON e.id = t.event_id AND t.status = 'active'
                 WHERE e.date > CURRENT_TIMESTAMP
@@ -24,6 +25,7 @@ class EventRepository:
             return conn.execute("""
                 SELECT e.id, e.title, e.venue, e.date, e.price, e.total_tickets, e.organizer_id,
                        (e.total_tickets - COUNT(t.id)) AS tickets_left,
+                       (e.poster_type IS NOT NULL) AS has_poster,
                        (e.date <= CURRENT_TIMESTAMP) AS started
                 FROM events e
                 LEFT JOIN tickets t ON e.id = t.event_id AND t.status = 'active'
@@ -38,7 +40,8 @@ class EventRepository:
         conn = get_connection()
         try:
             return conn.execute("""
-                SELECT e.id, e.title, e.venue, e.date, e.price, e.total_tickets, COUNT(t.id) AS tickets_sold
+                SELECT e.id, e.title, e.venue, e.date, e.price, e.total_tickets, COUNT(t.id) AS tickets_sold,
+                       (e.poster_type IS NOT NULL) AS has_poster
                 FROM events e
                 LEFT JOIN tickets t ON e.id = t.event_id AND t.status = 'active'
                 WHERE e.organizer_id = ?
@@ -77,5 +80,24 @@ class EventRepository:
         try:
             conn.execute("DELETE FROM events WHERE id = ?;", (event_id,))
             conn.commit()
+        finally:
+            conn.close()
+
+    @staticmethod
+    def set_poster(event_id: int, image: bytes, content_type: str):
+        conn = get_connection()
+        try:
+            conn.execute("UPDATE events SET poster_image = ?, poster_type = ? WHERE id = ?;",
+                         (image, content_type, event_id))
+            conn.commit()
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_poster(event_id: int):
+        conn = get_connection()
+        try:
+            return conn.execute("SELECT poster_image, poster_type FROM events WHERE id = ? AND poster_type IS NOT NULL;",
+                                (event_id,)).fetchone()
         finally:
             conn.close()

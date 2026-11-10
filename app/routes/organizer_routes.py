@@ -36,3 +36,8 @@ def attendees(event_id: int, user=Depends(current_user)):
 async def read_poster(image: UploadFile = File(...), user=Depends(current_user)):
     organizer_service.require_organizer(user)
     return poster.read_poster(await image.read(), image.content_type or "image/png")
+
+
+@router.post("/api/organizer/events/{event_id}/poster")
+async def set_poster(event_id: int, image: UploadFile = File(...), user=Depends(current_user)):
+    return organizer_service.set_poster(user, event_id, await image.read(), image.content_type or "")

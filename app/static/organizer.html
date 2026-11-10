@@ -76,6 +76,7 @@
     const fields = ['title', 'venue', 'date', 'price'];
     let events = [];
     let editingId = null;
+    let posterFile = null;
 
     function deny(message) {
       document.getElementById('area').hidden = true;
@@ -102,6 +103,10 @@
       form.reset();
       clearHints();
       editingId = null;
+      posterFile = null;
+      document.getElementById('poster').value = '';
+      posterStatus.innerHTML = '';
+      posterStatus.className = '';
       formStatus.innerHTML = '';
       formStatus.className = '';
       document.getElementById('form-title').textContent = 'New event';
@@ -130,13 +135,18 @@
         total_tickets: Number(form.elements.total.value),
       };
       try {
-        if (editingId === null) {
-          await api('/api/organizer/events', { method: 'POST', json: payload });
-          toast('Event created');
+        let id = editingId;
+        if (id === null) {
+          id = (await api('/api/organizer/events', { method: 'POST', json: payload })).id;
         } else {
-          await api('/api/organizer/events/' + editingId, { method: 'PUT', json: payload });
-          toast('Event updated');
+          await api('/api/organizer/events/' + id, { method: 'PUT', json: payload });
         }
+        if (posterFile) {
+          const body = new FormData();
+          body.append('image', posterFile);
+          await api('/api/organizer/events/' + id + '/poster', { method: 'POST', body });
+        }
+        toast(editingId === null ? 'Event created' : 'Event updated');
         resetForm();
         loadEvents(false);
       } catch (err) {
@@ -149,6 +159,7 @@
     document.getElementById('poster').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+      posterFile = file;
       posterStatus.className = 'state state-inline state-loading';
       posterStatus.removeAttribute('role');
       posterStatus.innerHTML = '<span class="row"><span class="spinner"></span> Reading the poster...</span>';

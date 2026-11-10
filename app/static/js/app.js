@@ -1,3 +1,7 @@
+function posterImg(ev) {
+  return ev.has_poster ? '<img class="poster-img" src="/api/events/' + encodeURIComponent(ev.id) + '/poster" alt="">' : '';
+}
+
 async function api(path, options = {}) {
   const init = {
     method: options.method || 'GET',

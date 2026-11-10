@@ -116,3 +116,38 @@ def test_AC_6_only_the_events_organizer_sees_attendees(world, second_organizer):
     other.cookies.set("vibe_session", second_organizer.token)
     assert other.get(f"/api/events/{event_id}/attendees").status_code == 403
     assert TestClient(app).get(f"/api/events/{event_id}/attendees").status_code == 401
+
+
+PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 20
+
+
+def upload(client, event_id, content=PNG, content_type="image/png"):
+    return client.post(f"/api/organizer/events/{event_id}/poster", files={"image": ("p.png", content, content_type)})
+
+
+def test_AC_27_an_uploaded_poster_is_served_and_flagged_on_the_event(world):
+    """AC-27: an uploaded poster is served and flagged on the event"""
+    client = login("organizer@vibe.test")
+    event_id = world.add_event()
+    assert client.get(f"/api/events/{event_id}").json()["has_poster"] is False
+    assert upload(client, event_id).status_code == 200
+    assert client.get(f"/api/events/{event_id}").json()["has_poster"] is True
+    res = TestClient(app).get(f"/api/events/{event_id}/poster")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "image/png"
+    assert res.content == PNG
+
+
+def test_AC_27_a_file_that_is_not_an_image_is_422_and_stores_nothing(world):
+    """AC-27: a file that is not an image is 422 and stores nothing"""
+    client = login("organizer@vibe.test")
+    event_id = world.add_event()
+    assert upload(client, event_id, b"hello", "text/plain").status_code == 422
+    assert TestClient(app).get(f"/api/events/{event_id}/poster").status_code == 404
+
+
+def test_AC_27_only_the_owner_can_set_a_poster(world):
+    """AC-27: only the owner can set a poster"""
+    event_id = world.add_event()
+    assert upload(login("customer@vibe.test"), event_id).status_code == 403
+    assert TestClient(app).get(f"/api/events/{event_id}/poster").status_code == 404

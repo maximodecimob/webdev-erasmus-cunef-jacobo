@@ -96,6 +96,8 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 ### Slice 4: the poster reader
 - [AC-23] A poster answer that is not valid JSON, or whose date does not parse, is ignored: the date field stays empty and the other valid fields are still filled. A good answer fills the four fields.
 
+- [AC-27] A poster image uploaded by the organizer of an event is saved with the event, shown on the event cards and the event page, and served by `/api/events/{id}/poster`. A file that is not an image gets 422, and another user gets 403; nothing is stored in either case.
+
 ### Slice 5: the MCP tools
 - [AC-24] An MCP tool and the API route give the same result for the same user, because both call the same service function: list_events lists what /api/events lists, buy_ticket creates a ticket that /api/tickets then shows, and buy_ticket refuses a sold-out event.
 - [AC-25] An MCP tool call with no token or with an invalid token is refused and changes nothing.
@@ -119,6 +121,7 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 | AC-24 | test_mcp.py::test_AC_24_mcp_list_events_equals_the_api, test_mcp.py::test_AC_24_mcp_buy_ticket_shows_up_in_the_api_and_errors_are_tool_results (+1) |
 | AC-25 | test_mcp.py::test_AC_25_missing_or_wrong_token_is_refused_and_changes_nothing, test_mcp.py::test_AC_25_without_MCP_TOKEN_every_tool_call_is_refused |
 | AC-26 | test_ticket_api.py::test_AC_26_an_organizer_buying_is_403, test_ticket_rules.py::test_AC_26_an_organizer_cannot_buy_a_ticket |
+| AC-27 | test_organizer_api.py::test_AC_27_an_uploaded_poster_is_served_and_flagged_on_the_event (+2) |
 
 ## Spec vs result
 - Passed: AC-9 (/events without a session redirects to /login with 303 and /api/events returns 401), AC-10 (a seeded customer sees the three seeded events with title, date and tickets left), AC-11 (after deleting one event row in the database the list shows two events).

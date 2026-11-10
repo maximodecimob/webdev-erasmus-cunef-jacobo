@@ -19,7 +19,8 @@ class EventService:
                 "date": to_iso(e["date"]),
                 "price": float(e["price"]),
                 "total_tickets": e["total_tickets"],
-                "tickets_left": e["tickets_left"]
+                "tickets_left": e["tickets_left"],
+                "has_poster": bool(e["has_poster"]),
             })
         return result
 
@@ -31,4 +32,12 @@ class EventService:
         return {
             "id": e["id"], "title": e["title"], "venue": e["venue"], "date": to_iso(e["date"]),
             "price": float(e["price"]), "total_tickets": e["total_tickets"], "tickets_left": e["tickets_left"],
+            "has_poster": bool(e["has_poster"]),
         }
+
+    @staticmethod
+    def get_poster(event_id):
+        poster = EventRepository.get_poster(event_id)
+        if poster is None:
+            raise NotFound("This event has no poster")
+        return poster["poster_image"], poster["poster_type"]

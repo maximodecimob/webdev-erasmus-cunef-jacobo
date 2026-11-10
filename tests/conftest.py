@@ -2,6 +2,7 @@ import os
 import tempfile
 
 # Must run before app.database is imported: tests use their own SQLite file, never the development database.
+os.environ.setdefault("SESSION_SECRET", "test-secret")
 os.environ["DATABASE_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
 
 import datetime

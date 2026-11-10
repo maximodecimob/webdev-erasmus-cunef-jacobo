@@ -3,7 +3,9 @@ from itsdangerous import Signer, BadSignature
 from dotenv import load_dotenv
 
 load_dotenv()
-SESSION_SECRET = os.getenv("SESSION_SECRET", "change-me")
+SESSION_SECRET = os.getenv("SESSION_SECRET")
+if not SESSION_SECRET:
+    raise RuntimeError("SESSION_SECRET is not set. Put a long random string in the environment or in .env")
 signer = Signer(SESSION_SECRET)
 
 def create_session_token(user_id: int) -> str:

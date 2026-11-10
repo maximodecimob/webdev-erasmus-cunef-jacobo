@@ -58,3 +58,12 @@ One entry per agent session, newest at the bottom. Be honest: what went wrong is
 - Went wrong: Gemini could not be reached, so the plan was not critiqued by it. My script that added AC docstrings to the tests broke the indentation of every test file; the next test run caught it and I fixed it. My first AC-2 API test was wrong (the customer already held the ticket) and was rewritten. The UI agent could not open a browser, so the layout at three widths is still unchecked.
 - Commits: made by Claude at the user's request (the lab asks the student to make them); the first commit also carries later repository code, so it is larger than one step. The push needs the user's GitHub login.
 - What the agent did that I did not ask for: it added `hueFor`, `dateBadge` and `confirmDialog` helpers in `app/static/js/app.js`; stored Google users with a NULL password hash; made the lecture MCP tools skip the token because `check.mjs` calls them without one; removed `mcp-server/server.js`; added `tests/__init__.py`; and changed `GET /` from a redirect to the public events page.
+
+## 2026-11-10 · Posters, show-password, Exercise 4 and 5 gaps
+- Goal: show the password on login, store and show poster images, and close the gaps the course checks found (deploy files, health, errors, coverage gates, docs).
+- Delegated: all of it to Claude Sonnet 5.5, with tests first for AC-27, AC-28, AC-29 and for the service branches that were not covered. Reading the course pages went to a web-fetch sub-agent.
+- Checkpoints: asked me before the Postgres migration, installing psycopg, and pushing; ran the whole test suite after each change; I read the diff.
+- Went wrong: Docker was not running, so the Postgres code was never run against a real Postgres. A first edit script failed halfway and was redone.
+- False claim by the agent: none found about deployment; nothing is deployed.
+- Changed by hand: nothing yet.
+- What the agent did that I did not ask for: edited `.github/workflows/ci.yml` (coverage step now uses `make coverage` on `app/`), added a `Makefile`, wrote a draft of `DEFENSE.md`, and ran `python -m app.seed`, which reset the development database.

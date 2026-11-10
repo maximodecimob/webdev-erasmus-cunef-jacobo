@@ -1,6 +1,5 @@
 import secrets
-import sqlite3
-
+from app.database import IntegrityErrors
 from app.errors import AlreadyHolds, EventStarted, NotAllowed, NotFound, SoldOut
 from app.repositories.event_repo import EventRepository
 from app.repositories.ticket_repo import TicketRepository
@@ -22,7 +21,7 @@ def buy_ticket(user, event_id):
     code = "VIBE-" + secrets.token_hex(4).upper()
     try:
         ticket_id = TicketRepository.create(event_id, user["id"], code)
-    except sqlite3.IntegrityError:  # two clicks at once: the unique index wins
+    except IntegrityErrors:  # two clicks at once: the unique index wins
         raise AlreadyHolds()
     if ticket_id is None:  # the insert refused: someone took the last place first
         raise SoldOut()

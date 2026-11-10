@@ -1,4 +1,4 @@
-from app.database import get_connection
+from app.database import POSTGRES, get_connection
 
 
 class TicketRepository:
@@ -7,9 +7,11 @@ class TicketRepository:
         """Insert only while places are left, in one statement; None when the event is full."""
         conn = get_connection()
         try:
+            if POSTGRES:  # concurrent buyers wait here, so the count below is never stale
+                conn.execute("SELECT id FROM events WHERE id = ? FOR UPDATE;", (event_id,))
             cur = conn.execute("""
                 INSERT INTO tickets (event_id, customer_id, code)
-                SELECT ?, ?, ? WHERE (SELECT COUNT(*) FROM tickets WHERE event_id = ? AND status = 'active')
+                SELECT CAST(? AS INTEGER), CAST(? AS INTEGER), CAST(? AS TEXT) WHERE (SELECT COUNT(*) FROM tickets WHERE event_id = ? AND status = 'active')
                                    < (SELECT total_tickets FROM events WHERE id = ?);
             """, (event_id, customer_id, code, event_id, event_id))
             conn.commit()

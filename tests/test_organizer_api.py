@@ -151,3 +151,25 @@ def test_AC_27_only_the_owner_can_set_a_poster(world):
     event_id = world.add_event()
     assert upload(login("customer@vibe.test"), event_id).status_code == 403
     assert TestClient(app).get(f"/api/events/{event_id}/poster").status_code == 404
+
+
+def test_AC_28_health_reports_ok_and_503_when_the_database_is_down(world, monkeypatch):
+    """AC-28: /health reports ok, and 503 when the database is down"""
+    client = TestClient(app)
+    assert client.get("/health").json() == {"status": "ok", "db": "ok"}
+    import app.main as main
+
+    def down():
+        raise RuntimeError("down")
+    monkeypatch.setattr(main, "ping", down)
+    res = client.get("/health")
+    assert res.status_code == 503 and res.json() == {"status": "error", "db": "down"}
+
+
+def test_AC_29_errors_are_one_readable_sentence_never_a_stack_trace(world):
+    """AC-29: unknown page is 404, broken JSON is 400, other bad input is 422"""
+    client = login("organizer@vibe.test")
+    assert client.get("/no-such-page").json() == {"error": "Page not found"}
+    bad = client.post("/api/organizer/events", content="{broken", headers={"Content-Type": "application/json"})
+    assert bad.status_code == 400 and bad.json() == {"error": "The request body is not valid JSON"}
+    assert client.post("/api/organizer/events", json=[1]).status_code == 422

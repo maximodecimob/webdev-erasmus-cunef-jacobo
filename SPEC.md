@@ -56,12 +56,21 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 - Browser, going out: the view is `app/static/event.html`. Its state lives in three script variables (`ev` the event, `me` the signed-in user, `busy` while paying). The Pay button calls `api()` in `app/static/js/app.js`, the one function that makes every REST call (`POST /api/events/3/tickets`, session cookie sent by the browser).
 - Route: `app/routes/ticket_routes.py` `buy()` takes the user from `current_user` (`app/deps.py`, 401 without a session) and calls the service; it holds no rule.
 - Service: `app/services/ticket_service.py` `buy_ticket()` holds the rules in this order: customers only (403), event exists (404), not started (409), one active ticket per customer (409), places left (409 "This event is sold out"). Failures are `AppError` subclasses from `app/errors.py`.
-- Repository: `app/repositories/ticket_repo.py` and `event_repo.py` hold the SQL (`?` placeholders) and open one SQLite connection per call (`app/database.py`).
+- Repository: `app/repositories/ticket_repo.py` and `event_repo.py` hold the SQL (`?` placeholders) and open one connection per call (`app/database.py`): SQLite locally, Postgres when `DATABASE_URL` is set.
 - Database: `tickets` in `app/migrations/001_initial_schema.sql`; `002_tickets_unique.sql` adds a unique index on active tickets, so two clicks at once cannot create two rows.
 - Back out: `AppError` is turned into `{"error": "<sentence>"}` with its status by the handler in `app/main.py`. In the browser `api()` throws an Error with that sentence, and `event.html` shows it in the dialog (error state) or the ticket code (success state), then `renderEvent()` redraws from `ev`.
 - Rule against overselling: `ticket_repo.create()` inserts only while active tickets are below `total_tickets`, in one statement, so two buyers of the last place cannot both succeed; the service turns a refused insert into 409.
 - The MCP server (`mcp-server/server.py`) calls the same services, so it cannot bypass a rule.
 - Where my code does not match the layering: `app/routes/auth_routes.py` `login_action` builds the session cookie and the HTML error page itself instead of leaving that to a service, because it came from the slice-1 code and I left it unchanged.
+
+### Screens: where each is rendered
+| Screen | Rendered | Why | While waiting |
+|---|---|---|---|
+| Events (`/events`) | browser, from `/api/events` | the same JSON serves the page and the MCP tools, and a page of static HTML needs no server templates | skeleton cards |
+| Event (`/events/{id}`) | browser | the buy dialog and tickets-left update without reloading | skeleton block |
+| Login, Register | server sends static HTML, the form posts with `fetch` | errors show in place without losing what was typed | "Signing in..." spinner |
+| My tickets | browser | cancelling removes a row without reloading | skeleton rows |
+| Organizer | browser | the poster reader fills the form after a slow model call | "Reading the poster..." spinner |
 
 ## Acceptance criteria
 - [AC-1] A signed-in customer who opens /events sees only events whose date is in the future, each with title, venue, date, price and tickets left.
@@ -98,6 +107,10 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 
 - [AC-27] A poster image uploaded by the organizer of an event is saved with the event, shown on the event cards and the event page, and served by `/api/events/{id}/poster`. A file that is not an image gets 422, and another user gets 403; nothing is stored in either case.
 
+### Slice 6: running in production
+- [AC-28] `/health` answers 200 `{"status":"ok","db":"ok"}`, and 503 `{"status":"error","db":"down"}` when the database cannot be reached.
+- [AC-29] An unknown page gets 404 "Page not found", a request body that is not valid JSON gets 400, and other bad input gets 422, each as one readable sentence with no stack trace.
+
 ### Slice 5: the MCP tools
 - [AC-24] An MCP tool and the API route give the same result for the same user, because both call the same service function: list_events lists what /api/events lists, buy_ticket creates a ticket that /api/tickets then shows, and buy_ticket refuses a sold-out event.
 - [AC-25] An MCP tool call with no token or with an invalid token is refused and changes nothing.
@@ -122,6 +135,8 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 | AC-25 | test_mcp.py::test_AC_25_missing_or_wrong_token_is_refused_and_changes_nothing, test_mcp.py::test_AC_25_without_MCP_TOKEN_every_tool_call_is_refused |
 | AC-26 | test_ticket_api.py::test_AC_26_an_organizer_buying_is_403, test_ticket_rules.py::test_AC_26_an_organizer_cannot_buy_a_ticket |
 | AC-27 | test_organizer_api.py::test_AC_27_an_uploaded_poster_is_served_and_flagged_on_the_event (+2) |
+| AC-28 | test_organizer_api.py::test_AC_28_health_reports_ok_and_503_when_the_database_is_down |
+| AC-29 | test_organizer_api.py::test_AC_29_errors_are_one_readable_sentence_never_a_stack_trace |
 
 ## Spec vs result
 - Passed: AC-9 (/events without a session redirects to /login with 303 and /api/events returns 401), AC-10 (a seeded customer sees the three seeded events with title, date and tickets left), AC-11 (after deleting one event row in the database the list shows two events).

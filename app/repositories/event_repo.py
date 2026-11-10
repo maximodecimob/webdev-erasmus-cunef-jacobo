@@ -1,4 +1,11 @@
+import datetime
+
 from app.database import get_connection
+
+
+def _now():
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
 
 class EventRepository:
     @staticmethod
@@ -11,10 +18,10 @@ class EventRepository:
                        (e.poster_type IS NOT NULL) AS has_poster
                 FROM events e
                 LEFT JOIN tickets t ON e.id = t.event_id AND t.status = 'active'
-                WHERE e.date > CURRENT_TIMESTAMP
+                WHERE e.date > ?
                 GROUP BY e.id
                 ORDER BY e.date ASC;
-            """).fetchall()
+            """, (_now(),)).fetchall()
         finally:
             conn.close()
 
@@ -26,12 +33,12 @@ class EventRepository:
                 SELECT e.id, e.title, e.venue, e.date, e.price, e.total_tickets, e.organizer_id,
                        (e.total_tickets - COUNT(t.id)) AS tickets_left,
                        (e.poster_type IS NOT NULL) AS has_poster,
-                       (e.date <= CURRENT_TIMESTAMP) AS started
+                       (e.date <= ?) AS started
                 FROM events e
                 LEFT JOIN tickets t ON e.id = t.event_id AND t.status = 'active'
                 WHERE e.id = ?
                 GROUP BY e.id;
-            """, (event_id,)).fetchone()
+            """, (_now(), event_id)).fetchone()
         finally:
             conn.close()
 

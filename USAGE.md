@@ -9,5 +9,6 @@ One row per agent session. In Gemini CLI, type `/stats` before you quit and copy
 | 2026-10-20 | Gemini CLI (spec critique, gemini-3.5-flash-lite) | 76 773 | 1 480 | | $0.03 |
 | 2026-10-20 | Gemini CLI (plan and build slice 1, gemini-3.5-flash-lite) | 1 569 324 | 13 735 | | $0.51 |
 | 2026-11-03 | Claude Sonnet 5.5 (Exercise 3 build, recent part of the session after the plan; main thread only, sub-agents not included) | 5 153 368 (5 057 991 of them cache reads) | 44 670 | | n/a |
+| 2026-11-10 | Claude Sonnet 5.5 (posters, Exercise 4 and 5 gaps; tokens not read from /stats) | n/a | n/a | | n/a |
 
 Price list used: Google Gemini API list prices, no cache discount: gemini-3.5-flash-lite $0.30 in / $2.50 out per 1M tokens; gemini-3.8-flash $0.75 in / $3.75 out per 1M tokens.

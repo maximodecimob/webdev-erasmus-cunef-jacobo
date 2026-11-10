@@ -1,3 +1,5 @@
+**Live app: https://vibe-tickets-jacobo.onrender.com**
+
 # Web Development course · your workspace
 
 This repository is your workspace for the whole course: Exercise 1 in `mcp-server/`, and your project (Exercises 2–5) in the rest of it. Everything runs in your browser through GitHub Codespaces, so nothing needs to be installed on your laptop.
@@ -6,7 +8,7 @@ By the end you hand in one working application: a backend and a frontend over a 
 
 ## Start
 
-1. On the course template page, click **Use this template → Create a new repository**. Make it **public** and name it `webdev-<your faculty number>`.
+1. On the course template page, click **Use this template → Create a new repository**. Make it **public** and name it `webdev-erasmus-cunef-jacobo`.
 2. Your repository is public, so the lecturer and your Exercise 5 review partner can read it without an invitation. That also means **no keys, passwords or client secrets ever go into it**: put them in **Settings → Secrets and variables → Codespaces** instead, where the workspace picks them up as environment variables.
 3. Click **Code → Codespaces → Create codespace on main**. The first start takes a few minutes while the tools are installed.
 4. When the terminal shows `Workspace ready`, type `gemini` and follow the sign-in steps on the course setup page.

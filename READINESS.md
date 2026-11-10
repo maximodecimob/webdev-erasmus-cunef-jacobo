@@ -5,7 +5,7 @@ Status: deployed on Render, but still on temporary SQLite until `DATABASE_URL` (
 ## Live URL and how to verify it
 
 - Live at https://vibe-tickets-jacobo.onrender.com (Render free web service, Ohio, built from the `Dockerfile`).
-- Once live: `curl https://<name>.onrender.com/health` must print `{"status":"ok","db":"ok"}`, then sign in with the seeded accounts (`customer@vibe.test`, `organizer@vibe.test`).
+- Once live: `curl https://vibe-tickets-jacobo.onrender.com/health` must print `{"status":"ok","db":"ok"}`, then register a test account and sign in (the live database has no seeded accounts).
 - How I checked: `curl https://vibe-tickets-jacobo.onrender.com/health` returned 200 `{"status":"ok","db":"ok"}` on 2026-11-10; `test_AC_28` covers the 503 case.
 
 ## Environment variables

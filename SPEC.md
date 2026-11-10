@@ -31,7 +31,7 @@ Club events.
 - Model: Gemini 2.5 Flash with vision, called from services/poster.py and nowhere else.
 - Input: the poster image an organizer uploads, and nothing about any customer. The image is the only data that leaves the app.
 - Output: a suggested title, date, venue and price, shown in the event form for the organizer to correct.
-- When it fails: no key, a timeout of 10 seconds or a 429 all leave the form empty with a note saying to type the details in. Nothing is saved until the organizer presses save, and a date the model returns that does not parse is left blank rather than guessed.
+- When it fails: no key, a timeout of 30 seconds or a 429 all leave the form empty with a note saying to type the details in. Nothing is saved until the organizer presses save, and a date the model returns that does not parse is left blank rather than guessed.
 
 ## Auth
 - Local: e-mail and password, stored as a bcrypt hash.

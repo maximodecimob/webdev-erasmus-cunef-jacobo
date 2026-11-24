@@ -60,11 +60,13 @@ A screen that only handles "it worked" is a screen that lies to the user on the 
 - [x] **Dark mode, or a written decision not to have one.**
   - what I decided and why: the whole UI is a dark nightclub theme (`color-scheme: dark`), so there is no light mode; chosen to match the product.
 
-## Known gaps
-
-- No screenshots yet: the Evidence section below needs the four states of one screen and the poster reader thinking and failing.
-
 ## Evidence
 
-<!-- Screenshots of at least the four states of one screen, and of the model feature
-     thinking and failing. A link to them is enough; they do not have to be in the repo. -->
+The four states of the events screen, and the poster reader thinking and failing (local app, 2026-11-24; loading and error were produced by stalling or rejecting `fetch` in the page, empty by an empty database):
+
+![Events: loading skeleton](ui/events-loading.jpg)
+![Events: empty](ui/events-empty.jpg)
+![Events: error with Retry](ui/events-error.jpg)
+![Events: success](ui/events-success.jpg)
+![Poster reader: thinking](ui/poster-thinking.jpg)
+![Poster reader: failed, the form still works](ui/poster-failed.jpg)

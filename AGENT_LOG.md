@@ -76,3 +76,4 @@ One entry per agent session, newest at the bottom. Be honest: what went wrong is
 - Changed in review: `MCP_TOKEN` is now an ordinary session token and the tools take no `user_id` (before, the token holder could act as anyone); CI `mcp` job installs Python and sets `SESSION_SECRET`; coverage moved to `npm run coverage` and `npm run coverage:services`.
 - Changed by hand: the Render and Google settings (secrets are typed by me, never by the agent).
 - What the agent did that I did not ask for: deleted the `Makefile` it had added earlier, edited `.github/workflows/ci.yml` (coverage and mcp jobs), and reworded `READINESS.md` and `DEFENSE.md`.
+- Screenshots (2026-11-24): the agent took the six images in `docs/ui/` itself through Claude in Chrome on a local server. The loading and error states were produced by stalling or rejecting `fetch` in the page, the empty state with an empty database; none came from a real outage.

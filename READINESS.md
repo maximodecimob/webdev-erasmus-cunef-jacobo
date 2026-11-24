@@ -49,7 +49,7 @@ Not measured yet. To do on the live site with the browser's Network tab.
 
 1. Render runs on temporary SQLite: `DATABASE_URL` for the Neon production branch is not set there yet, and Google sign-in is not configured on the live site. Next step: set `DATABASE_URL`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Render.
 2. Postgres: the suite was run against a throwaway Neon `dev` branch on 2026-11-10 (70 of 71 passed, the one failure was fixed); it has not been re-run on Postgres since. Next step: `TEST_DATABASE_URL=... python -m pytest`.
-3. UI evidence still open in `docs/UI.md`: screenshots of the four states (the keyboard walk-through and layout shift were checked on 2026-11-24). Next step: take them and link them under Evidence.
+3. UI evidence is in `docs/ui/` (four states of the events screen and the poster reader thinking and failing, 2026-11-24). The loading and error shots were produced by stalling or rejecting `fetch` in the page, not by a real outage.
 4. No CSRF token on the cookie session. Next step: a token on the write routes.
 5. No review of a classmate's project (Exercise 5) yet.
 

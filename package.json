@@ -8,6 +8,8 @@
   },
   "scripts": {
     "test": "echo No Node tests yet",
+    "coverage": "python -m pytest --cov=app --cov-branch --cov-fail-under=80",
+    "coverage:services": "python -m pytest --cov=app/services --cov-branch --cov-fail-under=100",
     "start": "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-3000}",
     "mcp": "python3 mcp-server/server.py"
   },

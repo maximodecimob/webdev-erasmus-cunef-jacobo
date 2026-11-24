@@ -63,7 +63,16 @@ One entry per agent session, newest at the bottom. Be honest: what went wrong is
 - Goal: show the password on login, store and show poster images, and close the gaps the course checks found (deploy files, health, errors, coverage gates, docs).
 - Delegated: all of it to Claude Sonnet 5.5, with tests first for AC-27, AC-28, AC-29 and for the service branches that were not covered. Reading the course pages went to a web-fetch sub-agent.
 - Checkpoints: asked me before the Postgres migration, installing psycopg, and pushing; ran the whole test suite after each change; I read the diff.
-- Went wrong: Docker was not running, so the Postgres code was never run against a real Postgres. A first edit script failed halfway and was redone.
-- False claim by the agent: none found about deployment; nothing is deployed.
+- Went wrong: Docker was not running, so the Postgres code was first written without a real Postgres (later tested on a Neon dev branch, see below). A first edit script failed halfway and was redone. The first Render deploy failed because `DATABASE_URL` held a generated string, not a connection string.
+- False claim by the agent: it said "nothing is deployed" in this entry; the app was deployed on Render (https://vibe-tickets-jacobo.onrender.com) later that day, on temporary SQLite.
 - Changed by hand: nothing yet.
-- What the agent did that I did not ask for: edited `.github/workflows/ci.yml` (coverage step now uses `make coverage` on `app/`), added a `Makefile`, wrote a draft of `DEFENSE.md`, and ran `python -m app.seed`, which reset the development database.
+- What the agent did that I did not ask for: edited `.github/workflows/ci.yml` (coverage step on `app/`; later moved to npm scripts), wrote a draft of `DEFENSE.md`, and ran `python -m app.seed`, which reset the development database.
+
+## 2026-11-24 · Review fixes: model feature back, MCP identity, CI, secure cookie
+- Goal: fix the review of the project: restore the model feature, make the MCP server act as one user, make CI green, mark the session cookie Secure on https, finish the documents.
+- Delegated: all of it to Claude Sonnet 5.5, tests first (AC-30, AC-31 failed before the code), a web-fetch sub-agent for the course pages.
+- Checkpoints: I answered the questions about deleting and restoring files; nothing was pushed; the agent ran the service coverage gate (100%), the whole suite (71 tests) and `node mcp-server/check.mjs` (12/12) before saying a step was done.
+- Went wrong: I had asked the agent to delete the poster reader and it did, which broke a required item (the model feature) and the CI spec job; the commit was reverted. The agent's early edit scripts failed on Windows line endings twice and were rewritten.
+- Changed in review: `MCP_TOKEN` is now an ordinary session token and the tools take no `user_id` (before, the token holder could act as anyone); CI `mcp` job installs Python and sets `SESSION_SECRET`; coverage moved to `npm run coverage` and `npm run coverage:services`.
+- Changed by hand: the Render and Google settings (secrets are typed by me, never by the agent).
+- What the agent did that I did not ask for: deleted the `Makefile` it had added earlier, edited `.github/workflows/ci.yml` (coverage and mcp jobs), and reworded `READINESS.md` and `DEFENSE.md`.

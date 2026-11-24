@@ -77,39 +77,20 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: Node coverage
-        if: hashFiles('package.json') != ''
-        run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
-          # Your own script wins, if you have one: a project on Vitest or Jest is not wrong.
-          if node -e "process.exit(require('./package.json').scripts?.coverage ? 0 : 1)"; then
-            npm run coverage
-          else
-            node --test --experimental-test-coverage \
-              --test-coverage-include='src/services/**' --test-coverage-exclude='test/**' \
-              --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100
-            node --test --experimental-test-coverage \
-              --test-coverage-include='src/**' --test-coverage-exclude='test/**' \
-              --test-coverage-lines=80
-          fi
-
       - name: Set up Python
-        if: hashFiles('requirements.txt', 'pyproject.toml') != ''
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Python coverage
-        if: hashFiles('app/**/*.py') != '' && hashFiles('requirements.txt', 'pyproject.toml') != ''
+      - name: Install Python packages
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; elif [ -f pyproject.toml ]; then pip install -e .; fi
-          pip install pytest pytest-cov
-          make coverage
+          pip install -r requirements.txt pytest pytest-cov
 
-      - name: No project yet
-        if: hashFiles('package.json', 'requirements.txt', 'pyproject.toml') == ''
-        run: echo "Nothing to measure yet."
+      - name: Coverage gates
+        run: |
+          npm run coverage:services
+          npm run coverage
 
   # From Exercise 1 on: does your MCP server still answer initialize and tools/list
   # the way a client expects? Skipped until you add an "mcp" script to package.json.
@@ -120,7 +101,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
       - name: MCP conformance
+        env:
+          SESSION_SECRET: ci-check
         run: |
           if node -e "process.exit(require('./package.json').scripts?.mcp ? 0 : 1)" 2>/dev/null; then
             if [ -f package-lock.json ]; then npm ci; else npm install; fi

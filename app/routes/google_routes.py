@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from app.services import google_auth
-from app.utils import create_session_token
+from app.utils import cookie_secure, create_session_token
 
 router = APIRouter()
 COOKIE = "google_oauth"
@@ -14,7 +14,7 @@ async def google_start():
         return RedirectResponse("/login?error=google_not_configured", status_code=303)
     url, cookie = google_auth.start()
     response = RedirectResponse(url, status_code=303)
-    response.set_cookie(COOKIE, cookie, max_age=600, httponly=True, samesite="lax", path="/auth/google")
+    response.set_cookie(COOKIE, cookie, max_age=600, httponly=True, samesite="lax", path="/auth/google", secure=cookie_secure())
     return response
 
 
@@ -25,6 +25,6 @@ async def google_callback(request: Request, code: str = "", state: str = ""):
         response = RedirectResponse("/login?error=google_failed", status_code=303)
     else:
         response = RedirectResponse("/events", status_code=303)
-        response.set_cookie("vibe_session", create_session_token(user_id), httponly=True, samesite="lax", secure=False)
+        response.set_cookie("vibe_session", create_session_token(user_id), httponly=True, samesite="lax", secure=cookie_secure())
     response.delete_cookie(COOKIE, path="/auth/google")
     return response

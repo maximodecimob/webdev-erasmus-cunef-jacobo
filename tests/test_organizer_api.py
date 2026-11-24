@@ -173,3 +173,13 @@ def test_AC_29_errors_are_one_readable_sentence_never_a_stack_trace(world):
     bad = client.post("/api/organizer/events", content="{broken", headers={"Content-Type": "application/json"})
     assert bad.status_code == 400 and bad.json() == {"error": "The request body is not valid JSON"}
     assert client.post("/api/organizer/events", json=[1]).status_code == 422
+
+
+def test_AC_31_the_session_cookie_is_secure_on_https_and_always_httponly(world, monkeypatch):
+    """AC-31: the session cookie is Secure when the site is served over https"""
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://example.onrender.com")
+    secure = TestClient(app).post("/login", data={"email": "customer@vibe.test", "password": "secret123"}, follow_redirects=False)
+    assert "Secure" in secure.headers["set-cookie"] and "HttpOnly" in secure.headers["set-cookie"]
+    monkeypatch.setenv("PUBLIC_BASE_URL", "http://localhost:3000")
+    plain = TestClient(app).post("/login", data={"email": "customer@vibe.test", "password": "secret123"}, follow_redirects=False)
+    assert "Secure" not in plain.headers["set-cookie"]

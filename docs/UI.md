@@ -15,8 +15,8 @@ the text is readable, and nothing jumps around while it loads.
   - how I checked: all sizes in `app/static/css/styles.css` come from `--space-*`, `--text-*` and `--radius-*` tokens (read the file).
 - [x] **Responsive at 380, 768 and 1280 pixels wide.** No horizontal scrollbar, no text running under another element.
   - how I checked: in the built-in browser I set the width to 380, 768 and 1280 on /events and /organizer and read `document.documentElement.scrollWidth`: never larger than the window (the 15 px difference at 768 and 1280 is the scrollbar).
-- [ ] **Nothing jumps while the page loads.** Images and cards reserve their space before their content arrives.
-  - how I checked:
+- [x] **Nothing jumps while the page loads.** Images and cards reserve their space before their content arrives.
+  - how I checked: in the built-in browser, `performance.getEntriesByType('layout-shift')` summed to 0.000 on /events after a keyboard sign-in; cards show a skeleton of the same size while loading.
 
 ## The four states, on every screen
 
@@ -33,8 +33,8 @@ A screen that only handles "it worked" is a screen that lies to the user on the 
 
 ## Keyboard and accessibility
 
-- [ ] **The main flow works with the keyboard alone.** Sign in, do the core action, sign out, without touching the mouse.
-  - how I checked:
+- [x] **The main flow works with the keyboard alone.** Sign in, do the core action, sign out, without touching the mouse.
+  - how I checked: in the built-in browser with Tab, typing and Enter only: sign in (email, password, Enter), open an event from the list, Tab to Buy ticket, Enter, Tab to Pay, Enter; /api/tickets then listed 1 ticket. Focus is visible (a 2.4 px solid outline on the focused link). I did not test signing out by keyboard, only that the Sign out button is reached by Tab.
 - [x] **The focused element is visible.** A `:focus-visible` outline that is not switched off.
   - how I checked: `:focus-visible` rules exist in `styles.css` and nothing sets `outline: none` on its own.
 - [x] **Text contrast is at least 4.5:1.** Name the tool you measured with.
@@ -48,7 +48,12 @@ A screen that only handles "it worked" is a screen that lies to the user on the 
 
 ## The model feature
 
-- The app has no model feature, so these items do not apply.
+- [x] **It shows that it is thinking.** A model call is slow and a free service may have been asleep; a frozen button is the worst possible answer.
+  - how I checked: the poster reader shows a spinner and "Reading the poster..." (read the code).
+- [x] **It shows when it failed,** and the rest of the screen still works.
+  - how I checked: a failed call prints the error and says the form can be filled in by hand (read the code).
+- [x] **The user can tell the model's suggestion from a fact.** It is labelled as a suggestion, not presented as data the app knows.
+  - how I checked: suggested fields show "Suggested from the poster, please check".
 
 ## Decisions
 
@@ -57,8 +62,7 @@ A screen that only handles "it worked" is a screen that lies to the user on the 
 
 ## Known gaps
 
-- Not yet checked: keyboard-only walk through the main flow, and that nothing jumps while loading (no layout-shift measurement).
-- No screenshots yet: the Evidence section below needs the four states of one screen.
+- No screenshots yet: the Evidence section below needs the four states of one screen and the poster reader thinking and failing.
 
 ## Evidence
 

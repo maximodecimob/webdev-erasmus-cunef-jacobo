@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, Request, Form, HTTPException, resp
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from app.services.auth_service import AuthService
 from app.deps import current_user
-from app.utils import create_session_token
+from app.utils import cookie_secure, create_session_token
 import os
 
 router = APIRouter()
@@ -33,13 +33,13 @@ async def login_action(request: Request, email: str = Form(...), password: str =
         value=token,
         httponly=True,
         samesite="lax",
-        secure=False # Set True in production with HTTPS
+        secure=cookie_secure()
     )
     return response
 
 def _session_response(response, user_id):
     response.set_cookie(key="vibe_session", value=create_session_token(user_id),
-                        httponly=True, samesite="lax", secure=False)
+                        httponly=True, samesite="lax", secure=cookie_secure())
     return response
 
 

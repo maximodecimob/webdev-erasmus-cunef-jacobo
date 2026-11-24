@@ -17,3 +17,8 @@ def verify_session_token(token: str) -> int | None:
         return int(unsigned.decode("utf-8"))
     except (BadSignature, ValueError, TypeError):
         return None
+
+
+def cookie_secure() -> bool:
+    """Session cookies are marked Secure when the site is served over https."""
+    return os.getenv("PUBLIC_BASE_URL", "").startswith("https://")

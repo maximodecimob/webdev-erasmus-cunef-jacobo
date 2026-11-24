@@ -2,6 +2,7 @@
 import base64
 import datetime
 import json
+import logging
 import os
 import re
 
@@ -14,7 +15,7 @@ NOT_READ = "I could not read the poster. Please type the details in."
 
 
 def ask_model(image: bytes, mime: str) -> str:
-    model = os.getenv("MODEL_NAME", "gemini-2.5-flash")
+    model = os.getenv("MODEL_NAME", "gemini-3.5-flash-lite")
     body = {"contents": [{"parts": [{"text": PROMPT},
                                     {"inline_data": {"mime_type": mime, "data": base64.b64encode(image).decode()}}]}]}
     res = httpx.post(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
@@ -45,7 +46,8 @@ def read_poster(image: bytes, mime: str) -> dict:
         answer = ask_model(image, mime)
         match = re.search(r"\{.*\}", answer, re.S)
         data = json.loads(match.group(0))
-    except Exception:  # fallback: model down, bad key, or an answer that is not JSON: never block the form
+    except Exception as error:  # fallback: model down, bad key, or an answer that is not JSON: never block the form
+        logging.warning("poster reader fell back: %s", error)
         return {**empty, "note": NOT_READ}
     price = data.get("price")
     ok_price = isinstance(price, (int, float)) and not isinstance(price, bool) and price >= 0

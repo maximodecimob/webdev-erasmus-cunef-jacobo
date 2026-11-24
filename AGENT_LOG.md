@@ -77,3 +77,5 @@ One entry per agent session, newest at the bottom. Be honest: what went wrong is
 - Changed by hand: the Render and Google settings (secrets are typed by me, never by the agent).
 - What the agent did that I did not ask for: deleted the `Makefile` it had added earlier, edited `.github/workflows/ci.yml` (coverage and mcp jobs), and reworded `READINESS.md` and `DEFENSE.md`.
 - Screenshots (2026-11-24): the agent took the six images in `docs/ui/` itself through Claude in Chrome on a local server. The loading and error states were produced by stalling or rejecting `fetch` in the page, the empty state with an empty database; none came from a real outage.
+- Live check (2026-11-24, after I set Render up myself): the agent read the live site with curl (health, 3 events from Neon, Google redirect, Secure cookie) and, at my request to fix what was left, set Render Auto-Deploy to "After CI Checks Pass" and the health check path to /health in the Render dashboard. It did not touch any secret.
+- Tag: `v1.0.0`, named by me, created on the final commit.

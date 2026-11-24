@@ -1,12 +1,12 @@
 # Readiness report: Vibe Tickets
 
-Status: deployed on Render (checked 2026-11-10), but on temporary SQLite until `DATABASE_URL` (Neon) is set there, so data is lost on every redeploy, and Google sign-in answers "google_not_configured" until its client id and secret are set there. Every claim has a "How I checked" line.
+Status: deployed on Render with the Neon Postgres database, Google sign-in configured and demo data seeded (all checked on 2026-11-24). Every claim has a "How I checked" line.
 
 ## Live URL and how to verify it
 
 - Live at https://vibe-tickets-jacobo.onrender.com (Render free web service, Ohio, built from the `Dockerfile`).
 - Once live: `curl https://vibe-tickets-jacobo.onrender.com/health` must print `{"status":"ok","db":"ok"}`, then register a test account and sign in (the live database has no seeded accounts).
-- How I checked: `curl https://vibe-tickets-jacobo.onrender.com/health` returned 200 `{"status":"ok","db":"ok"}` on 2026-11-10; `test_AC_28` covers the 503 case.
+- How I checked: `curl https://vibe-tickets-jacobo.onrender.com/health` returned 200 `{"status":"ok","db":"ok"}` on 2026-11-10; `test_AC_28` covers the 503 case. On 2026-11-24 the live `/api/events` listed the 3 seeded events (so it reads Neon, not an empty temporary SQLite), `/auth/google` redirected to accounts.google.com (not "google_not_configured"), and the login cookie came back `HttpOnly; Secure; SameSite=lax`.
 
 ## Environment variables
 
@@ -27,7 +27,7 @@ How I checked: `.env.example` lists all of them; `app/utils.py` raises "SESSION_
 - Database down: `/health` answers 503 `{"status":"error","db":"down"}`; other API calls answer 500 with "Something went wrong on our side. Please try again." and the details go to the server log. Checked by `test_AC_28` and `test_AC_29`.
 - Broken JSON: 400 "The request body is not valid JSON". Unauthenticated write: 401. Another user's event: 403. Checked by `test_AC_29` and the AC-21 tests.
 - Unknown page: 404 `{"error":"Page not found"}`. No stack trace is ever sent to the client.
-- Bad deploy and rollback: not yet timed; to do on Render.
+- Bad deploy and rollback: not yet timed; to do on Render. Render now checks `/health` and restarts the service if it fails.
 - Model provider down or no key: the poster form stays empty with a note (AC-8, AC-23).
 
 ## Four states of one screen
@@ -47,11 +47,13 @@ Not measured yet. To do on the live site with the browser's Network tab.
 
 ## Known gaps, ranked by risk
 
-1. Render runs on temporary SQLite: `DATABASE_URL` for the Neon production branch is not set there yet, and Google sign-in is not configured on the live site. Next step: set `DATABASE_URL`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Render.
+1. Auto-Deploy is set to "After CI Checks Pass" (2026-11-24) but not yet proven with a deliberately failing test, and a rollback has not been timed. Next step: push a failing test, watch Render hold the deploy, then fix it.
 2. Postgres: the suite was run against a throwaway Neon `dev` branch on 2026-11-10 (70 of 71 passed, the one failure was fixed); it has not been re-run on Postgres since. Next step: `TEST_DATABASE_URL=... python -m pytest`.
 3. UI evidence is in `docs/ui/` (four states of the events screen and the poster reader thinking and failing, 2026-11-24). The loading and error shots were produced by stalling or rejecting `fetch` in the page, not by a real outage.
 4. No CSRF token on the cookie session. Next step: a token on the write routes.
 5. No review of a classmate's project (Exercise 5) yet.
+6. The live demo accounts use a publicly known password (`secret123`). Next step: change both passwords before the defence.
+7. The free Render service sleeps after 15 minutes, so the first request can take about a minute; open the site before the demo.
 
 ## Model feature
 

@@ -27,7 +27,7 @@ Every acceptance criterion in `SPEC.md` has a test whose title contains its id (
 
 ## What is wrong with it
 
-Ranked by risk, from `READINESS.md`: (1) the live Render service runs on temporary SQLite until the Neon `DATABASE_URL` is set there, and Google sign-in is not configured on it; (2) the keyboard-only walk-through, layout shift and screenshots in `docs/UI.md` are not done; (3) no CSRF token, only a SameSite=Lax cookie; (4) the Postgres path was tested once on a Neon dev branch, not on every run; (5) the free Render service sleeps, so the first request after a pause takes about a minute.
+Ranked by risk, from `READINESS.md`: (1) the Render Auto-Deploy gate ("After CI Checks Pass") is set but not proven with a failing test, and no rollback has been timed; (2) the demo accounts have a publicly known password; (3) no CSRF token, only a SameSite=Lax cookie; (4) the Postgres path was tested once on a Neon dev branch, not on every run; (5) the free Render service sleeps, so the first request after a pause takes about a minute; (6) the peer review of Exercise 5 is not done.
 
 ## The thing in this repository I did not write and cannot explain
 

@@ -125,6 +125,7 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 - [AC-34] A Google sign-in started on another host name than the site address (127.0.0.1 instead of localhost) is restarted on the site address, because the sign-in cookie only goes back to the host it was set on; otherwise the callback fails with "Google sign-in failed".
 - [AC-35] Logging in does not depend on the case or the spaces around the e-mail address.
 - [AC-36] A signed-in user who opens the login or register page is sent to the events, so a failed sign-up can no longer look like a login as someone else; a visitor still sees both pages.
+- [AC-37] The three seeded events each have a poster image, shown on the events list and on the event page.
 - [AC-30] The MCP server acts as the one user whose ordinary session token is in MCP_TOKEN: no tool takes a user id, and a user_id argument sent anyway is ignored.
 
 ## Traceability
@@ -151,6 +152,7 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 | AC-34 | test_google_auth.py::test_AC_34_starting_google_from_another_host_restarts_on_the_site_address |
 | AC-35 | test_login_rules.py::test_AC_35_the_email_is_not_case_sensitive_when_logging_in |
 | AC-36 | test_login_rules.py::test_AC_36_a_signed_in_user_is_sent_from_login_and_register_to_the_events |
+| AC-37 | test_slice1.py::test_AC_37_every_seeded_event_has_a_poster_image |
 | AC-31 | test_organizer_api.py::test_AC_31_the_session_cookie_is_secure_on_https_and_always_httponly |
 | AC-26 | test_ticket_api.py::test_AC_26_an_organizer_buying_is_403, test_ticket_rules.py::test_AC_26_an_organizer_cannot_buy_a_ticket |
 | AC-27 | test_organizer_api.py::test_AC_27_an_uploaded_poster_is_served_and_flagged_on_the_event (+2) |

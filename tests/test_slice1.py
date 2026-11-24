@@ -61,3 +61,11 @@ def test_AC_11_deleting_event_removes_it_from_screen():
     assert len(events) == 2
     titles = [e["title"] for e in events]
     assert "Indie Pop Live" not in titles
+
+
+def test_AC_37_every_seeded_event_has_a_poster_image():
+    """AC-37: every seeded event has a poster image"""
+    events = client.get("/api/events").json()
+    assert len(events) == 3 and all(e["has_poster"] for e in events)
+    res = client.get(f"/api/events/{events[0]['id']}/poster")
+    assert res.status_code == 200 and res.headers["content-type"] == "image/jpeg" and res.content[:2] == b"\xff\xd8"

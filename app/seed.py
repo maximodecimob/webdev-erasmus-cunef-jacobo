@@ -1,6 +1,11 @@
 import datetime
+import os
+
 import bcrypt
 from app.database import get_connection, run_migrations
+
+POSTERS = os.path.join(os.path.dirname(__file__), "seed_posters")
+
 
 def seed_database():
     run_migrations()
@@ -27,16 +32,18 @@ def seed_database():
         # Insert 3 future events. Dates are stored as UTC text, like CURRENT_TIMESTAMP.
         now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0, tzinfo=None)
         events_data = [
-            ("Techno Warehouse Madrid", "Garaje Club", now + datetime.timedelta(days=7), 20.00, 150, organizer_id),
-            ("House Night Rooftop", "Terraza Sky", now + datetime.timedelta(days=14), 25.00, 80, organizer_id),
-            ("Indie Pop Live", "Sala Sol", now + datetime.timedelta(days=21), 15.00, 200, organizer_id),
+            ("Techno Warehouse Madrid", "Garaje Club", now + datetime.timedelta(days=7), 20.00, 150, organizer_id, "techno"),
+            ("House Night Rooftop", "Terraza Sky", now + datetime.timedelta(days=14), 25.00, 80, organizer_id, "house"),
+            ("Indie Pop Live", "Sala Sol", now + datetime.timedelta(days=21), 15.00, 200, organizer_id, "indie"),
         ]
 
-        for title, venue, date, price, total_tickets, org_id in events_data:
+        for title, venue, date, price, total_tickets, org_id, poster in events_data:
+            with open(os.path.join(POSTERS, poster + ".jpg"), "rb") as f:
+                image = f.read()
             conn.execute("""
-                INSERT INTO events (title, venue, date, price, total_tickets, organizer_id)
-                VALUES (?, ?, ?, ?, ?, ?);
-            """, (title, venue, date.strftime("%Y-%m-%d %H:%M:%S"), price, total_tickets, org_id))
+                INSERT INTO events (title, venue, date, price, total_tickets, organizer_id, poster_image, poster_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'image/jpeg');
+            """, (title, venue, date.strftime("%Y-%m-%d %H:%M:%S"), price, total_tickets, org_id, image))
 
         conn.commit()
         print("Database seeded successfully with 2 users and 3 future events.")

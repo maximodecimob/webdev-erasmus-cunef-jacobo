@@ -76,6 +76,7 @@ function renderNav(me) {
   let user;
   if (me) {
     links += me.role === 'organizer' ? link('/organizer', 'My events') : link('/tickets', 'My tickets');
+    links += link('/settings', 'Settings');
     user = '<span class="nav-email" title="' + escapeHtml(me.email) + '">' + escapeHtml(me.email) + '</span>'
       + '<form action="/logout" method="POST"><button class="btn btn-ghost" type="submit">Sign out</button></form>';
   } else {

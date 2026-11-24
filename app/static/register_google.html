@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finish signing up - Vibe Tickets</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="nav" id="nav"></header>
+  <main id="main" class="container container-narrow page">
+    <div class="card auth-card">
+      <h1>Finish signing up</h1>
+      <div id="loading" class="state state-inline state-loading"><span class="row"><span class="spinner"></span> Checking your Google sign-in...</span></div>
+      <div id="expired" hidden class="state state-error" role="alert">
+        <p class="state-title">Your Google sign-up expired</p>
+        <a class="btn btn-ghost" href="/register">Start again</a>
+      </div>
+      <form class="form" id="role-form" hidden>
+        <p>Google confirmed <strong id="email"></strong>. What will you use Vibe Tickets for?</p>
+        <fieldset class="fieldset">
+          <legend class="legend">I want to...</legend>
+          <div class="choice-group">
+            <label class="choice"><input type="radio" name="role" value="customer" checked> I want to buy tickets</label>
+            <label class="choice"><input type="radio" name="role" value="organizer"> I organize events</label>
+          </div>
+        </fieldset>
+        <div id="status-message" aria-live="polite"></div>
+        <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Create my account</button>
+      </form>
+    </div>
+  </main>
+  <script src="/static/js/app.js"></script>
+  <script>
+    getMe().then(renderNav);
+    const form = document.getElementById('role-form');
+    const statusDiv = document.getElementById('status-message');
+    const submitBtn = document.getElementById('submit-btn');
+    api('/api/auth/google/pending').then((p) => {
+      document.getElementById('email').textContent = p.email;
+      form.hidden = false;
+    }).catch(() => {
+      document.getElementById('expired').hidden = false;
+    }).finally(() => { document.getElementById('loading').hidden = true; });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      statusDiv.className = 'state state-inline state-loading';
+      statusDiv.removeAttribute('role');
+      statusDiv.innerHTML = '<span class="row"><span class="spinner"></span> Creating your account...</span>';
+      const role = form.elements.role.value;
+      try {
+        await api('/api/auth/google/role', { method: 'POST', json: { role } });
+        statusDiv.className = 'state state-inline state-success';
+        statusDiv.textContent = 'Account created. Redirecting...';
+        window.location.href = role === 'organizer' ? '/organizer' : '/events';
+        return;
+      } catch (err) {
+        statusDiv.className = 'state state-inline state-error';
+        statusDiv.setAttribute('role', 'alert');
+        statusDiv.textContent = err.message;
+      }
+      submitBtn.disabled = false;
+    });
+  </script>
+</body>
+</html>

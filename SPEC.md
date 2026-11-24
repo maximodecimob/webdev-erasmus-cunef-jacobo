@@ -36,6 +36,7 @@ Club events.
 ## Auth
 - Local: e-mail and password, stored as a bcrypt hash.
 - Provider: Sign in with Google, the authorization-code flow on the server with state and PKCE.
+- New Google users: an address with no account is not created automatically; the user first chooses customer or organizer (AC-32). Settings (password change, AC-33) are for the signed-in user only.
 - Linking: matched on the e-mail only when Google marks it as verified, so one person stays one account and ends in the same session cookie. An address Google has not verified is never linked to an existing account.
 
 ## MCP tools
@@ -51,7 +52,7 @@ The server acts as one user: `MCP_TOKEN` is that user's ordinary session token (
 | `organizer_events` | Lists the organizer's own events with tickets sold | an organizer |
 
 ## UI
-Plain HTML, CSS and JavaScript served by FastAPI, with design tokens in one CSS file. Dark nightclub look: near-black background, violet and magenta accents, large event cards. Six screens: the public home with the list of upcoming events and a Log in button on each, sign in, register, one event with its buy button (and, for its organizer, the buyers), my tickets, and the organizer's own events with the poster reader. The checklist is in docs/UI.md.
+Plain HTML, CSS and JavaScript served by FastAPI, with design tokens in one CSS file. Dark nightclub look: near-black background, violet and magenta accents, large event cards. Eight screens: the public home with the list of upcoming events and a Log in button on each, sign in, register, one event with its buy button (and, for its organizer, the buyers), my tickets, the organizer's own events with the poster reader, the page where a new Google user chooses buyer or organizer, and settings (password). The checklist is in docs/UI.md.
 
 ## Architecture
 One request traced through the layers: a customer presses "Pay" on /events/3.
@@ -71,6 +72,8 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 | Events (`/events`) | browser, from `/api/events` | the same JSON serves the page and the MCP tools, and a page of static HTML needs no server templates | skeleton cards |
 | Event (`/events/{id}`) | browser | the buy dialog and tickets-left update without reloading | skeleton block |
 | Login, Register | server sends static HTML, the form posts with `fetch` | errors show in place without losing what was typed | "Signing in..." spinner |
+| Finish Google sign-up | browser | the role choice needs the verified address from the Google cookie | "Checking your Google sign-in..." spinner |
+| Settings | browser | the form changes by sign-in method (current password only if one exists) | "Loading your account..." spinner |
 | My tickets | browser | cancelling removes a row without reloading | skeleton rows |
 | Organizer | browser | the poster reader fills the form after a slow model call | "Reading the poster..." spinner |
 
@@ -117,6 +120,11 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 ### Slice 5: the MCP tools
 - [AC-24] An MCP tool and the API route give the same result for the same user, because both call the same service function: list_events lists what /api/events lists, buy_ticket creates a ticket that /api/tickets then shows, and buy_ticket refuses a sold-out event.
 - [AC-25] An MCP tool call with no token or with an invalid token is refused and changes nothing.
+- [AC-32] Signing in with Google with an address that has no account creates nothing yet: the user is sent to a page that asks whether they buy tickets or organize events, and the account is created, with that role and signed in, only after they choose. A bad role, or a missing or forged sign-up, is refused and creates no account.
+- [AC-33] A signed-in user can see how they sign in on the settings page and change their password by giving the current one and a new one of at least 8 characters; a wrong current password or a short new one gets 422, no session gets 401, and the password does not change. An account that only uses Google can set a first password without a current one.
+- [AC-34] A Google sign-in started on another host name than the site address (127.0.0.1 instead of localhost) is restarted on the site address, because the sign-in cookie only goes back to the host it was set on; otherwise the callback fails with "Google sign-in failed".
+- [AC-35] Logging in does not depend on the case or the spaces around the e-mail address.
+- [AC-36] A signed-in user who opens the login or register page is sent to the events, so a failed sign-up can no longer look like a login as someone else; a visitor still sees both pages.
 - [AC-30] The MCP server acts as the one user whose ordinary session token is in MCP_TOKEN: no tool takes a user id, and a user_id argument sent anyway is ignored.
 
 ## Traceability
@@ -138,6 +146,11 @@ One request traced through the layers: a customer presses "Pay" on /events/3.
 | AC-24 | test_mcp.py::test_AC_24_mcp_list_events_equals_the_api, test_mcp.py::test_AC_24_mcp_buy_ticket_shows_up_in_the_api_and_errors_are_tool_results (+1) |
 | AC-25 | test_mcp.py::test_AC_25_missing_or_wrong_token_is_refused_and_changes_nothing, test_mcp.py::test_AC_25_without_MCP_TOKEN_every_tool_call_is_refused |
 | AC-30 | test_mcp.py::test_AC_30_a_user_id_argument_cannot_make_the_token_act_as_someone_else |
+| AC-32 | test_google_auth.py::test_AC_32_a_new_google_email_creates_nothing_until_a_role_is_chosen (+3) |
+| AC-33 | test_settings.py::test_AC_33_changing_the_password_needs_the_current_one_and_a_long_enough_new_one (+3) |
+| AC-34 | test_google_auth.py::test_AC_34_starting_google_from_another_host_restarts_on_the_site_address |
+| AC-35 | test_login_rules.py::test_AC_35_the_email_is_not_case_sensitive_when_logging_in |
+| AC-36 | test_login_rules.py::test_AC_36_a_signed_in_user_is_sent_from_login_and_register_to_the_events |
 | AC-31 | test_organizer_api.py::test_AC_31_the_session_cookie_is_secure_on_https_and_always_httponly |
 | AC-26 | test_ticket_api.py::test_AC_26_an_organizer_buying_is_403, test_ticket_rules.py::test_AC_26_an_organizer_cannot_buy_a_ticket |
 | AC-27 | test_organizer_api.py::test_AC_27_an_uploaded_poster_is_served_and_flagged_on_the_event (+2) |

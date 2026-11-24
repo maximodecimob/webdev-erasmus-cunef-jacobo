@@ -30,7 +30,7 @@ def _id_token(email, sub="g-123", verified=True):
 def client(monkeypatch):
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "cid")
     monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret")
-    return TestClient(app)
+    return TestClient(app, base_url="http://localhost:3000")
 
 
 def _start(client):
@@ -56,6 +56,14 @@ def test_AC_7_start_redirects_to_google_with_pkce(client, world):
     assert res.headers["location"].startswith("https://accounts.google.com/o/oauth2/v2/auth")
     assert q["code_challenge_method"] == ["S256"] and q["response_type"] == ["code"]
     assert q["redirect_uri"] == ["http://localhost:3000/auth/google/callback"]
+
+
+def test_AC_34_starting_google_from_another_host_restarts_on_the_site_address(client, world):
+    """AC-34: starting google from another host restarts on the site address, so the state cookie is sent back"""
+    other = TestClient(app, base_url="http://127.0.0.1:3000")
+    res = other.get("/auth/google", follow_redirects=False)
+    assert res.status_code == 303 and res.headers["location"] == "http://localhost:3000/auth/google"
+    assert "google_oauth" not in res.cookies
 
 
 def test_AC_7_google_not_configured_redirects_to_login(monkeypatch, world):
@@ -85,24 +93,62 @@ def test_AC_7_returning_google_user_signs_in_to_same_row(client, monkeypatch, wo
     assert "vibe_session" in res.cookies and len(_users()) == before
 
 
-def test_AC_7_new_email_creates_one_customer(client, monkeypatch, world):
-    """AC-7: new email creates one customer"""
+def _new_google_user(client, monkeypatch, email="New@Gmail.com", sub="g-new"):
+    return _google_login(client, monkeypatch, email, sub=sub)
+
+
+def test_AC_32_a_new_google_email_creates_nothing_until_a_role_is_chosen(client, monkeypatch, world):
+    """AC-32: a new google email creates nothing until a role is chosen"""
     before = len(_users())
-    res = _google_login(client, monkeypatch, "New@Gmail.com", sub="g-new")
-    assert res.headers["location"] == "/events" and "vibe_session" in res.cookies
+    res = _new_google_user(client, monkeypatch)
+    assert res.headers["location"] == "/register/google"
+    assert "vibe_session" not in res.cookies and "google_signup" in res.cookies
+    assert len(_users()) == before
+    assert client.get("/api/auth/google/pending").json() == {"email": "new@gmail.com"}
+
+
+def test_AC_32_choosing_a_role_creates_the_account_and_signs_in(client, monkeypatch, world):
+    """AC-32: choosing a role creates the account and signs in"""
+    before = len(_users())
+    _new_google_user(client, monkeypatch)
+    res = client.post("/api/auth/google/role", json={"role": "organizer"})
+    assert res.status_code == 201 and "vibe_session" in res.cookies
     rows = _users()
     assert len(rows) == before + 1
     new = [r for r in rows if r["google_id"] == "g-new"][0]
-    assert new["email"] == "new@gmail.com" and new["role"] == "customer"
+    assert (new["email"], new["role"]) == ("new@gmail.com", "organizer")
 
 
-def test_AC_7_bad_state_is_rejected_without_session(client, monkeypatch, world):
-    """AC-7: bad state is rejected without session"""
+def test_AC_32_a_bad_role_or_a_missing_or_forged_signup_is_refused_and_creates_nothing(client, monkeypatch, world):
+    """AC-32: a bad role or a missing or forged signup is refused and creates nothing"""
+    before = len(_users())
+    assert client.post("/api/auth/google/role", json={"role": "organizer"}).status_code == 401
+    assert client.get("/api/auth/google/pending").status_code == 401
+    client.cookies.set("google_signup", "forged", path="/api/auth/google")
+    assert client.post("/api/auth/google/role", json={"role": "organizer"}).status_code == 401
+    _new_google_user(client, monkeypatch)
+    assert client.post("/api/auth/google/role", json={"role": "admin"}).status_code == 422
+    assert len(_users()) == before
+
+
+def test_AC_32_an_email_registered_meanwhile_is_a_409(client, monkeypatch, world):
+    """AC-32: an email registered meanwhile is a 409"""
+    _new_google_user(client, monkeypatch)
+    from app.repositories.user_repo import UserRepository
+    UserRepository.create("new@gmail.com", "x", "customer")
+    before = len(_users())
+    assert client.post("/api/auth/google/role", json={"role": "customer"}).status_code == 409
+    assert len(_users()) == before
+
+
+def test_AC_7_bad_state_is_rejected_without_session(client, monkeypatch, world, caplog):
+    """AC-7: bad state is rejected without session, and the reason is logged"""
     monkeypatch.setattr(google_auth, "exchange_code", lambda code, verifier: pytest.fail("must not be called"))
     _start(client)
     res = client.get("/auth/google/callback?code=abc&state=wrong", follow_redirects=False)
     assert res.headers["location"] == "/login?error=google_failed"
     assert "vibe_session" not in res.cookies
+    assert "google sign-in failed" in caplog.text
 
 
 def test_AC_7_missing_state_cookie_is_rejected(client, world):

@@ -3,6 +3,7 @@ import os
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, RedirectResponse
 
+from app.deps import session_user
 from app.utils import verify_session_token
 
 router = APIRouter()
@@ -32,8 +33,20 @@ def event_page(event_id: int):
 
 
 @router.get("/register")
-def register_page():
+def register_page(request: Request):
+    if session_user(request):
+        return RedirectResponse(url="/events", status_code=303)
     return page("register.html")
+
+
+@router.get("/register/google")
+def register_google_page():
+    return page("register_google.html")
+
+
+@router.get("/settings")
+def settings_page():
+    return page("settings.html")
 
 
 @router.get("/tickets")

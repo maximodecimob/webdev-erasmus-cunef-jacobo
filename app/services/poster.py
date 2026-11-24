@@ -8,8 +8,10 @@ import re
 
 import httpx
 
-PROMPT = ('Read this event poster. Answer ONLY with JSON: {"title": string, "venue": string, '
-          '"date": ISO 8601 date-time, "price": number in euros}. Use null for anything you cannot read.')
+PROMPT = ('Read this event poster or photo. Answer ONLY with JSON: {"title": string, "venue": string, '
+          '"date": ISO 8601 date-time, "price": number in euros}. Take title, venue, date and price from the text on '
+          'the image. If the image has no event text (a photo of a place), use a short title for what it shows and '
+          'the place or landmark as venue. Use null for the date and price unless they are printed on the image.')
 NO_KEY = "Poster reading is off (no model key). Please type the details in."
 NOT_READ = "I could not read the poster. Please type the details in."
 

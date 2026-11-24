@@ -1,14 +1,16 @@
 from fastapi import APIRouter, Body, Depends, Request, Form, HTTPException, responses
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from app.services.auth_service import AuthService
-from app.deps import current_user
+from app.deps import current_user, session_user
 from app.utils import cookie_secure, create_session_token
 import os
 
 router = APIRouter()
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page():
+async def login_page(request: Request):
+    if session_user(request):
+        return RedirectResponse(url="/events", status_code=303)
     # Serve static login page
     login_html_path = os.path.join("app", "static", "login.html")
     if os.path.exists(login_html_path):
@@ -54,6 +56,17 @@ async def logout_action():
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie(key="vibe_session")
     return response
+
+
+@router.get("/api/account")
+async def account(user=Depends(current_user)):
+    return AuthService.account(user)
+
+
+@router.post("/api/auth/password", status_code=204)
+async def change_password(data: dict = Body(...), user=Depends(current_user)):
+    AuthService.change_password(user, data.get("current_password"), data.get("new_password"))
+    return Response(status_code=204)
 
 
 @router.get("/api/me")

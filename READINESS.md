@@ -53,7 +53,8 @@ Not measured yet. To do on the live site with the browser's Network tab.
 4. No CSRF token on the cookie session. Next step: a token on the write routes.
 5. No review of a classmate's project (Exercise 5) yet.
 6. The live demo accounts use a publicly known password (`secret123`). Next step: change both passwords before the defence.
-7. The free Render service sleeps after 15 minutes, so the first request can take about a minute; open the site before the demo.
+7. Account linking: a Google sign-in is linked to an existing password account with the same verified e-mail, but password sign-ups are not e-mail verified, so a person who registered someone else's address first could keep access after that person signs in with Google. Next step: verify e-mails on password sign-up, or drop the password when linking.
+8. The free Render service sleeps after 15 minutes, so the first request can take about a minute; open the site before the demo.
 
 ## Model feature
 

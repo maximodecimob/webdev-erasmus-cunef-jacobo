@@ -5,7 +5,7 @@ class UserRepository:
     def get_by_email(email: str):
         conn = get_connection()
         try:
-            return conn.execute("SELECT id, email, password_hash, role FROM users WHERE email = ?;", (email,)).fetchone()
+            return conn.execute("SELECT id, email, password_hash, role, google_id FROM users WHERE email = ?;", (email,)).fetchone()
         finally:
             conn.close()
 
@@ -46,13 +46,22 @@ class UserRepository:
             conn.close()
 
     @staticmethod
-    def create_google_user(email: str, google_id: str):
+    def create_google_user(email: str, google_id: str, role: str):
         conn = get_connection()
         try:
             cur = conn.execute(
-                "INSERT INTO users (email, password_hash, role, google_id) VALUES (?, NULL, 'customer', ?);",
-                (email, google_id))
+                "INSERT INTO users (email, password_hash, role, google_id) VALUES (?, NULL, ?, ?);",
+                (email, role, google_id))
             conn.commit()
             return cur.lastrowid
+        finally:
+            conn.close()
+
+    @staticmethod
+    def set_password(user_id: int, password_hash: str):
+        conn = get_connection()
+        try:
+            conn.execute("UPDATE users SET password_hash = ? WHERE id = ?;", (password_hash, user_id))
+            conn.commit()
         finally:
             conn.close()

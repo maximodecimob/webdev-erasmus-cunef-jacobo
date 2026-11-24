@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings - Vibe Tickets</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="nav" id="nav"></header>
+  <main id="main" class="container container-narrow page">
+    <div class="page-head">
+      <h1><span class="accent">Settings</span></h1>
+      <p>Your account and how you sign in.</p>
+    </div>
+    <div id="state" aria-live="polite"><div class="state state-loading"><span class="spinner"></span> Loading your account...</div></div>
+    <div id="content" class="stack" hidden>
+      <section class="card panel" aria-labelledby="account-title">
+        <h2 id="account-title">Account</h2>
+        <dl class="facts">
+          <div><dt>Email</dt><dd id="acc-email"></dd></div>
+          <div><dt>Account type</dt><dd id="acc-role"></dd></div>
+          <div><dt>Sign-in methods</dt><dd id="acc-methods"></dd></div>
+        </dl>
+      </section>
+      <section class="card panel" aria-labelledby="pw-title">
+        <h2 id="pw-title">Password</h2>
+        <p class="muted" id="pw-intro"></p>
+        <form class="form" id="pw-form">
+          <div class="field" id="current-field">
+            <label for="current">Current password</label>
+            <input class="input" id="current" type="password" autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label for="new">New password</label>
+            <input class="input" id="new" type="password" required minlength="8" autocomplete="new-password" aria-describedby="new-hint">
+            <p class="hint" id="new-hint">At least 8 characters.</p>
+          </div>
+          <div class="field">
+            <label for="again">Repeat the new password</label>
+            <input class="input" id="again" type="password" required minlength="8" autocomplete="new-password">
+          </div>
+          <div id="pw-status" aria-live="polite"></div>
+          <button class="btn btn-primary" type="submit" id="pw-btn">Save password</button>
+        </form>
+      </section>
+    </div>
+  </main>
+  <script src="/static/js/app.js"></script>
+  <script>
+    getMe().then(renderNav);
+    const stateBox = document.getElementById('state');
+    const content = document.getElementById('content');
+    const form = document.getElementById('pw-form');
+    const status = document.getElementById('pw-status');
+    const btn = document.getElementById('pw-btn');
+    let account = null;
+
+    function show() {
+      document.getElementById('acc-email').textContent = account.email;
+      document.getElementById('acc-role').textContent = account.role === 'organizer' ? 'Organizer' : 'Customer';
+      const methods = [];
+      if (account.has_password) methods.push('Password');
+      if (account.has_google) methods.push('Google');
+      document.getElementById('acc-methods').textContent = methods.join(' and ');
+      document.getElementById('current-field').hidden = !account.has_password;
+      document.getElementById('current').required = account.has_password;
+      document.getElementById('pw-intro').textContent = account.has_password
+        ? 'Enter your current password to choose a new one.'
+        : 'You sign in with Google. Set a password if you also want to log in with your email.';
+      btn.textContent = account.has_password ? 'Change password' : 'Set password';
+      stateBox.innerHTML = '';
+      content.hidden = false;
+    }
+
+    async function load() {
+      stateBox.innerHTML = '<div class="state state-loading"><span class="spinner"></span> Loading your account...</div>';
+      try {
+        account = await api('/api/account');
+        show();
+      } catch (err) {
+        if (err.status === 401) { location.href = '/login'; return; }
+        stateBox.innerHTML = '<div class="state state-error" role="alert"><p class="state-title">Could not load your account</p>'
+          + '<p>' + escapeHtml(err.message) + '</p><button class="btn btn-ghost" id="retry" type="button">Retry</button></div>';
+        document.getElementById('retry').addEventListener('click', load);
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      status.removeAttribute('role');
+      if (form.elements.new.value !== form.elements.again.value) {
+        status.className = 'state state-inline state-error';
+        status.setAttribute('role', 'alert');
+        status.textContent = 'The two new passwords are not the same';
+        return;
+      }
+      btn.disabled = true;
+      status.className = 'state state-inline state-loading';
+      status.innerHTML = '<span class="row"><span class="spinner"></span> Saving...</span>';
+      try {
+        await api('/api/auth/password', {
+          method: 'POST',
+          json: { current_password: form.elements.current.value, new_password: form.elements.new.value },
+        });
+        form.reset();
+        status.className = 'state state-inline state-success';
+        status.textContent = 'Password saved';
+        account.has_password = true;
+        show();
+      } catch (err) {
+        if (err.status === 401) { location.href = '/login'; return; }
+        status.className = 'state state-inline state-error';
+        status.setAttribute('role', 'alert');
+        status.textContent = err.message;
+      }
+      btn.disabled = false;
+    });
+    load();
+  </script>
+</body>
+</html>

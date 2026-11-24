@@ -50,6 +50,7 @@ class _PgConnection:
         self.commit, self.rollback = conn.commit, conn.rollback
 
     def close(self):
+        self._conn.rollback()
         _pool.putconn(self._conn)
 
     def execute(self, sql, params=()):
